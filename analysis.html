@@ -1,572 +1,715 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GiyaPay: Philippine Payment Gateway Analysis</title>
-    <!-- Chosen Palette: Calm Neutral Harmony -->
-    <!-- Application Structure Plan: The SPA is designed as a top-down narrative dashboard for user-friendly exploration. It starts with a high-level overview, then moves to an interactive feature-by-feature comparison (the core interactive element), followed by an interactive quantitative pricing chart, and finally, detailed qualitative profiles of each provider. This structure allows a user to get the gist quickly, perform a detailed comparison, visualize the cost implications, and then access in-depth information as needed. This non-linear, user-driven flow is more effective for synthesis than a static report, enabling users to compare competitors based on the criteria most important to them. -->
-    <!-- Visualization & Content Choices: 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GiyaPay: Philippine Payment Gateway Analysis</title>
+  <!-- Chosen Palette: Calm Neutral Harmony -->
+  <!-- Application Structure Plan: The SPA is designed as a top-down narrative dashboard for user-friendly exploration. It starts with a high-level overview, then moves to an interactive feature-by-feature comparison (the core interactive element), followed by an interactive quantitative pricing chart, and finally, detailed qualitative profiles of each provider. This structure allows a user to get the gist quickly, perform a detailed comparison, visualize the cost implications, and then access in-depth information as needed. This non-linear, user-driven flow is more effective for synthesis than a static report, enabling users to compare competitors based on the criteria most important to them. -->
+  <!-- Visualization & Content Choices: 
     - Report Info: Competitor Features (Target Market, Security, etc.). Goal: Compare. Viz/Method: Interactive HTML Table. Interaction: Checkboxes to show/hide competitors. Justification: Allows direct, multi-competitor comparison on specific features, which is a primary user task. Library: Vanilla JS.
     - Report Info: Competitor Pricing (Transaction Fees). Goal: Compare (Quantitative). Viz/Method: Bar Chart. Interaction: Hover tooltips for precise data. Justification: Visually represents complex pricing data for quick comprehension of cost differences, a key decision factor for MSMEs. Library: Chart.js.
     - Report Info: Detailed competitor information. Goal: Inform. Viz/Method: Styled text blocks in a card-based layout. Interaction: Navigational links. Justification: Presents detailed qualitative information in a structured, digestible format. Library: Tailwind CSS.
+    - NEW LLM Feature: Feature Comparison Insights. Goal: Synthesize & Inform. Viz/Method: Text block. Interaction: Button click to generate insights based on selected competitors. Justification: Provides AI-powered analysis of the comparison data, offering deeper understanding. Library: Gemini API.
+    - NEW LLM Feature: Pricing Analysis Summary. Goal: Synthesize & Inform. Viz/Method: Text block. Interaction: Button click to generate summary of pricing data. Justification: Offers AI-powered interpretation of pricing, highlighting key takeaways. Library: Gemini API.
     CONFIRMING NO SVG/Mermaid. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f7f4;
-            color: #3f3c3a;
-        }
-
-        .nav-link {
-            transition: color 0.3s ease, border-bottom-color 0.3s ease;
-            border-bottom: 2px solid transparent;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: #c084fc;
-            border-bottom-color: #c084fc;
-        }
-
-        .card {
-            background-color: #ffffff;
-            border: 1px solid #e7e5e4;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-        }
-
-        .btn-primary {
-            background-color: #8b5cf6;
-            color: white;
-            transition: background-color 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background-color: #7c3aed;
-        }
-
-        .table-header {
-            background-color: #f3f4f6;
-            position: sticky;
-            top: 64px;
-            z-index: 10;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 400px;
-            max-height: 50vh;
-        }
-
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 500px;
-            }
-        }
-    </style>
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f7f4;
+      color: #3f3c3a;
+    }
+    .nav-link {
+      transition: color 0.3s ease, border-bottom-color 0.3s ease;
+      border-bottom: 2px solid transparent;
+    }
+    .nav-link:hover, .nav-link.active {
+      color: #c084fc;
+      border-bottom-color: #c084fc;
+    }
+    .card {
+      background-color: #ffffff;
+      border: 1px solid #e7e5e4;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 4px 6px -4px / 0.05);
+    }
+    .btn-primary {
+      background-color: #8b5cf6;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .btn-primary:hover {
+      background-color: #7c3aed;
+    }
+    .table-header {
+      background-color: #f3f4f6;
+      position: sticky;
+      top: 68px;
+      z-index: 10;
+    }
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 400px;
+      max-height: 50vh;
+    }
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 500px;
+      }
+    }
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .modal-close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #8b5cf6;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-
 <body class="antialiased">
 
-    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-20">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex-shrink-0">
-                    <h1 class="text-xl font-bold text-purple-700">GiyaPay Analysis</h1>
-                </div>
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Overview</a>
-                        <a href="#comparison" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Feature
-                            Comparison</a>
-                        <a href="#pricing" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Pricing Chart</a>
-                        <a href="#profiles" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Competitor
-                            Profiles</a>
-                    </div>
-                </div>
-                <div class="md:hidden">
-                    <button id="mobile-menu-button"
-                        class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-purple-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500">
-                        <span class="sr-only">Open main menu</span>
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16m-7 6h7" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </nav>
-
-        <div id="login-screen" style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
-            <form id="login-form" class="bg-white p-8 rounded shadow-lg flex flex-col gap-4 max-w-xs w-full">
-                <h2 class="font-bold text-xl text-purple-700 mb-2">Protected Page</h2>
-                <input id="username" class="border p-2 rounded" type="text" placeholder="Username" required />
-                <input id="password" class="border p-2 rounded" type="password" placeholder="Password" required />
-                <button class="btn-primary py-2 rounded" type="submit">Login</button>
-                <div id="login-error" class="text-red-500 text-sm"></div>
-            </form>
+  <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-20">
+    <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex-shrink-0">
+          <h1 class="text-xl font-bold" style="color: #fa9f42;">GiyaPay Analysis</h1>
         </div>
-
-        <div id="protected-content" style="display:none">
-            <div id="mobile-menu" class="md:hidden hidden">
-                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                    <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Overview</a>
-                    <a href="#comparison" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Feature
-                        Comparison</a>
-                    <a href="#pricing" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Pricing
-                        Chart</a>
-                    <a href="#profiles" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Competitor
-                        Profiles</a>
-                </div>
-            </div>
-    </header>
-
-    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-
-        <section id="overview" class="text-center mb-16 md:mb-24 scroll-mt-20">
-            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-4">Philippine Payment Gateways: A
-                Competitive Look</h2>
-            <p class="max-w-3xl mx-auto text-lg text-gray-600">
-                This analysis explores GiyaPay's position within the dynamic Philippine fintech landscape. The
-                application is structured to provide a clear, interactive comparison of key payment gateways targeting
-                the nation's vast MSME market. You can explore a side-by-side feature comparison, visualize pricing
-                differences, and delve into detailed profiles to understand how each provider, including GiyaPay, meets
-                the unique needs of Filipino businesses.
-            </p>
-        </section>
-
-        <section id="comparison" class="mb-16 md:mb-24 scroll-mt-20">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900">Interactive Feature Comparison</h2>
-                <p class="mt-2 text-lg text-gray-600">Select competitors to compare their features side-by-side with
-                    GiyaPay. This section helps you quickly identify how each platform caters to different business
-                    needs, from target markets to security protocols.</p>
-                <div id="competitor-toggle" class="mt-6 flex flex-wrap justify-center gap-2 md:gap-4"></div>
-            </div>
-
-            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
-                <table id="comparison-table" class="min-w-full divide-y divide-gray-200">
-                    <thead class="table-header">
-                        <tr>
-                            <th
-                                class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4 sm:w-1/5">
-                                Feature</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="pricing" class="mb-16 md:mb-24 scroll-mt-20">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900">Pricing Showdown</h2>
-                <p class="mt-2 text-lg text-gray-600">This chart visualizes the Merchant Discount Rate (MDR) for key
-                    payment methods across different gateways. It provides a clear, quantitative comparison of potential
-                    costs for a standard transaction, a crucial factor for any business. Hover over the bars for
-                    detailed fee information.</p>
-            </div>
-            <div class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-lg border border-gray-200">
-                <div class="chart-container">
-                    <canvas id="pricingChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <section id="profiles" class="scroll-mt-20">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900">Competitor Profiles</h2>
-                <p class="mt-2 text-lg text-gray-600">Dive deeper into the specifics of each payment gateway. These
-                    profiles offer detailed insights into each company's offerings, strategic focus, and pricing models,
-                    providing the qualitative context behind the comparison data.</p>
-            </div>
-            <div id="profiles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            </div>
-        </section>
-
-    </main>
-
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-4">
+            <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Overview</a>
+            <a href="#comparison" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Feature Comparison</a>
+            <a href="#pricing" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Pricing Chart</a>
+            <a href="#profiles" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Competitor Profiles</a>
+          </div>
+        </div>
+        <div class="md:hidden">
+          <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500">
+            <span class="sr-only">Open main menu</span>
+            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <div id="mobile-menu" class="md:hidden hidden">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Overview</a>
+        <a href="#comparison" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Feature Comparison</a>
+        <a href="#pricing" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Pricing Chart</a>
+        <a href="#profiles" class="nav-link block px-3 py-2 rounded-md text-base font-medium">Competitor Profiles</a>
+      </div>
     </div>
+  </header>
 
-    <footer class="bg-gray-800 text-white mt-16">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-            <p>&copy; 2024 GiyaPay Competitive Analysis. All data is for informational purposes.</p>
+  <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+     
+    <section id="overview" class="text-center mb-16 md:mb-24 scroll-mt-20">
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-4">Philippine Payment Gateways: A Competitive Look</h2>
+      <p class="max-w-3xl mx-auto text-lg text-gray-600">
+        This analysis explores GiyaPay's position within the dynamic Philippine fintech landscape. The application is structured to provide a clear, interactive comparison of key payment gateways targeting the nation's vast MSME market. You can explore a side-by-side feature comparison, visualize pricing differences, and delve into detailed profiles to understand how each provider, including GiyaPay, meets the unique needs of Filipino businesses.
+      </p>
+    </section>
+
+    <section id="comparison" class="mb-16 md:mb-24 scroll-mt-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Interactive Feature Comparison</h2>
+        <p class="mt-2 text-lg text-gray-600">Select competitors to compare their features side-by-side with GiyaPay. This section helps you quickly identify how each platform caters to different business needs, from target markets to security protocols.</p>
+        <div id="competitor-toggle" class="mt-6 flex flex-wrap justify-center gap-2 md:gap-4"></div>
+      </div>
+       
+      <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+  <table id="comparison-table" class="min-w-full divide-y divide-gray-200">
+    <thead class="table-header">
+      <tr id="table-header-row">
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4 sm:w-1/5">Feature</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 text-center">
+        <button id="generate-feature-insights-btn" class="btn-primary px-6 py-3 rounded-lg text-lg font-semibold shadow-md hover:shadow-lg flex items-center justify-center mx-auto">
+          Generate Feature Insights ✨
+          <span id="feature-loading-spinner" class="spinner ml-3 hidden"></span>
+        </button>
+        <div id="feature-insights-output" class="mt-6 p-6 bg-white rounded-lg shadow-md border border-gray-200 text-left hidden">
+          <h3 class="text-xl font-semibold text-gray-800 mb-3">Feature Comparison Insights</h3>
+          <div id="feature-insights-content" class="prose max-w-none text-gray-700"></div>
         </div>
-    </footer>
+      </div>
+    </section>
 
-    <script>
-        const comparisonData = {
-            headers: {
-                giapay: 'GiyaPay',
-                paymongo: 'Paymongo',
-                dragonpay: 'Dragonpay',
-                xendit: 'Xendit',
-                ipay88: 'iPay88'
-            },
-            features: [
-                {
-                    feature: 'Primary Target Market',
-                    giapay: 'MSMEs, LGUs, Retail, Schools, Tourism',
-                    paymongo: 'MSMEs and small businesses',
-                    dragonpay: 'Businesses of all sizes, focus on unbanked consumers',
-                    xendit: 'SMEs, e-commerce startups, large enterprises',
-                    ipay88: 'SMEs to large corporations'
-                },
-                {
-                    feature: 'Unique Selling Proposition',
-                    giapay: 'Merchant-centric design, simple user journey, high configurability (fee allocation, gateway activation)',
-                    paymongo: '"Stripe for the Philippines", advanced machine learning fraud detection',
-                    dragonpay: 'Pioneer in alternative/offline payments, extensive Over-the-Counter (OTC) network',
-                    xendit: 'Comprehensive SEA solution, 100+ payment methods, 24/7 support',
-                    ipay88: 'Strong regional presence, comprehensive fraud prevention with 24/7 scanning'
-                },
-                {
-                    feature: 'Payment Links (No Website)',
-                    giapay: 'Yes, core feature',
-                    paymongo: 'Yes, core feature',
-                    dragonpay: 'Implied through various channels',
-                    xendit: 'Yes, core feature',
-                    ipay88: 'Yes, core feature'
-                },
-                {
-                    feature: 'Key Security Features',
-                    giapay: 'Google App Engine, SSL encryption, pass-through model (no sensitive data stored)',
-                    paymongo: 'PCI-DSS Level 1, real-time machine learning fraud engine, 3D Secure',
-                    dragonpay: 'SSL encryption, established fraud prevention protocols',
-                    xendit: 'PCI-DSS compliant, AML checks, liveness detection, 24/7 monitoring',
-                    ipay88: 'BSP licensed, 24/7 real-time fraud scanning, CVC/CVV2 verification'
-                },
-                {
-                    feature: 'Setup / Annual Fees',
-                    giapay: 'No setup/annual fees mentioned',
-                    paymongo: 'No setup/annual fees',
-                    dragonpay: 'Setup fee starts at ~₱36,000',
-                    xendit: 'No setup/annual fees',
-                    ipay88: 'Has one-time registration and annual fees (SME Plan)'
-                },
-                {
-                    feature: 'Settlement Period',
-                    giapay: 'T+1 to T+2',
-                    paymongo: 'Instant settlement available via PayMongo Wallet (with a fee)',
-                    dragonpay: 'Not explicitly stated',
-                    xendit: 'Varies by method, some instant',
-                    ipay88: 'Typically 5 business days'
-                },
-                {
-                    feature: 'Customer Support',
-                    giapay: 'Email, Chat, Dashboard. Clear SLA (P0-P3 priorities)',
-                    paymongo: 'Help Center, localized content',
-                    dragonpay: 'Phone, Email, Viber with specified business hours',
-                    xendit: '24/7 support via Email, Live Chat, Viber',
-                    ipay88: 'Email, Phone'
-                },
-            ],
-        };
+    <section id="pricing" class="mb-16 md:mb-24 scroll-mt-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Pricing Showdown</h2>
+        <p class="mt-2 text-lg text-gray-600">This chart visualizes the Merchant Discount Rate (MDR) for key payment methods across different gateways. It provides a clear, quantitative comparison of potential costs for a standard transaction, a crucial factor for any business. Hover over the bars for detailed fee information.</p>
+      </div>
+      <div class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-lg border border-gray-200">
+        <div class="chart-container">
+          <canvas id="pricingChart"></canvas>
+        </div>
+      </div>
+      <div class="mt-8 text-center">
+        <button id="summarize-pricing-btn" class="btn-primary px-6 py-3 rounded-lg text-lg font-semibold shadow-md hover:shadow-lg flex items-center justify-center mx-auto">
+          Summarize Pricing ✨
+          <span id="pricing-loading-spinner" class="spinner ml-3 hidden"></span>
+        </button>
+        <div id="pricing-summary-output" class="mt-6 p-6 bg-white rounded-lg shadow-md border border-gray-200 text-left hidden">
+          <h3 class="text-xl font-semibold text-gray-800 mb-3">Pricing Analysis Summary</h3>
+          <div id="pricing-summary-content" class="prose max-w-none text-gray-700"></div>
+        </div>
+      </div>
+    </section>
 
-        const pricingData = {
-            labels: ['Credit/Debit Card (Local)', 'GCash', 'Online Banking', 'Over-the-Counter'],
-            datasets: [
-                {
-                    label: 'GiyaPay',
-                    data: [2.8, 2.8, 2.8, null],
-                    backgroundColor: 'rgba(139, 92, 246, 0.7)',
-                    borderColor: 'rgba(139, 92, 246, 1)',
-                    borderWidth: 1,
-                    tooltips: {
-                        'Credit/Debit Card (Local)': '2.80% + ₱12.50',
-                        'GCash': '2.80% (Universal) + ₱12.50',
-                        'Online Banking': '2.80% (Universal) + ₱12.50',
-                    }
-                },
-                {
-                    label: 'Paymongo',
-                    data: [3.5, 2.9, 0.8, null],
-                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1,
-                    tooltips: {
-                        'Credit/Debit Card (Local)': '3.5% + ₱15',
-                        'GCash': '2.9%',
-                        'Online Banking': '0.8% or ₱15 min',
-                    }
-                },
-                {
-                    label: 'Dragonpay',
-                    data: [null, null, null, null],
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                    borderColor: 'rgba(239, 68, 68, 1)',
-                    borderWidth: 1,
-                    tooltips: {
-                        'Credit/Debit Card (Local)': 'Varies by evaluation',
-                        'GCash': 'Varies (Fixed to MDR)',
-                        'Online Banking': '₱10-15 fixed fee',
-                        'Over-the-Counter': '₱15-20 fixed fee',
-                    }
-                },
-                {
-                    label: 'Xendit',
-                    data: [3.2, 2.3, 1.0, 1.5],
-                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    borderWidth: 1,
-                    tooltips: {
-                        'Credit/Debit Card (Local)': '3.20% + ₱10',
-                        'GCash': '2.30%',
-                        'Online Banking': '1.0% or ₱15',
-                        'Over-the-Counter': '₱15-25 fixed fee',
-                    }
-                },
-                {
-                    label: 'iPay88',
-                    data: [2.7, 2.6, 2.6, null],
-                    backgroundColor: 'rgba(245, 158, 11, 0.7)',
-                    borderColor: 'rgba(245, 158, 11, 1)',
-                    borderWidth: 1,
-                    tooltips: {
-                        'Credit/Debit Card (Local)': '2.7% (SME Plan)',
-                        'GCash': '2.6% or min RM0.60',
-                        'Online Banking': '2.6% or min RM0.60',
-                    }
-                }
-            ]
-        };
+    <section id="profiles" class="scroll-mt-20">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Competitor Profiles</h2>
+        <p class="mt-2 text-lg text-gray-600">Dive deeper into the specifics of each payment gateway. These profiles offer detailed insights into each company's offerings, strategic focus, and pricing models, providing the qualitative context behind the comparison data.</p>
+      </div>
+      <div id="profiles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      </div>
+    </section>
 
-        const profilesData = [
-            {
-                name: 'GiyaPay',
-                logoColor: 'text-purple-600',
-                summary: 'A "pandemic-native" payment aggregator focused on simplifying digital payments for Philippine MSMEs. Its core strengths are ease of use, merchant-centric design, and high configurability.',
-                details: [
-                    '**Pricing:** Fixed transaction fee (₱12.50) + MDR. Offers "Universal" (e.g., 2.80%) or "Individualized" (per-gateway) MDRs.',
-                    '**Key Advantage:** Allows merchants to configure who absorbs fees (merchant or payor) and which gateways are active, offering superior operational flexibility.',
-                    '**Security:** Built on Google App Engine with a pass-through data model, meaning it does not store sensitive payor financial data.'
-                ]
-            },
-            {
-                name: 'Paymongo',
-                logoColor: 'text-blue-600',
-                summary: 'A well-funded fintech often called the "Stripe for the Philippines." It targets MSMEs with a comprehensive suite of easy-to-integrate payment tools and strong fraud prevention.',
-                details: [
-                    '**Pricing:** Per-transaction fees vary by method (e.g., Cards: 3.5% + ₱15, GCash: 2.9%). No setup fees.',
-                    '**Key Advantage:** Advanced real-time fraud detection powered by machine learning and PCI-DSS Level 1 compliance.',
-                    '**Security:** Emphasizes top-tier security with HTTPS/HSTS, 3D Secure, and detailed risk analysis.'
-                ]
-            },
-            {
-                name: 'Dragonpay',
-                logoColor: 'text-red-600',
-                summary: 'A veteran in the Philippine market, Dragonpay excels in alternative and offline payment channels, catering to the large segment of unbanked consumers.',
-                details: [
-                    '**Pricing:** Often uses fixed fees for non-card transactions (e.g., Online Banking: ₱10-15). Requires a significant one-time setup fee.',
-                    '**Key Advantage:** Unmatched network of over-the-counter (OTC) payment centers (banks, pawnshops, convenience stores).',
-                    '**Security:** Established and trusted platform with a long history of secure transaction processing.'
-                ]
-            },
-            {
-                name: 'Xendit',
-                logoColor: 'text-green-600',
-                summary: 'A major Southeast Asian fintech providing a powerful, all-in-one payment infrastructure for businesses of all sizes, from startups to large enterprises.',
-                details: [
-                    '**Pricing:** Transaction-based fees with no setup costs (e.g., Local Cards: 3.2% + ₱10, GCash: 2.3%).',
-                    '**Key Advantage:** Offers over 100 payment methods, advanced automation/payout features, and 24/7 human customer support.',
-                    '**Security:** PCI-DSS compliant with advanced identity verification tools, including AML checks and liveness detection.'
-                ]
-            },
-            {
-                name: 'iPay88',
-                logoColor: 'text-amber-500',
-                summary: 'A leading regional payment gateway with a strong presence across Southeast Asia, serving over 35,000 merchants with a focus on security and reliability.',
-                details: [
-                    '**Pricing:** Plan-based, typically involving one-time registration and annual fees on top of transaction rates (e.g., SME Card rate: 2.7%).',
-                    '**Key Advantage:** BSP licensed with a comprehensive fraud prevention system featuring 24/7 real-time scanning.',
-                    '**Security:** Focuses on secure, reliable processing with established protocols and official regulatory oversight.'
-                ]
+  </main>
+
+  <footer class="bg-gray-800 text-white mt-16">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+      <p>&copy; 2024 GiyaPay Competitive Analysis. All data is for informational purposes.</p>
+    </div>
+  </footer>
+
+  <!-- Custom Modal for messages -->
+  <div id="custom-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <button class="modal-close-button" onclick="document.getElementById('custom-modal').classList.add('hidden')">&times;</button>
+      <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-4"></h3>
+      <p id="modal-message" class="text-gray-700"></p>
+    </div>
+  </div>
+
+  <script>
+    const comparisonData = {
+      headers: {
+        giapay: 'GiyaPay',
+        paymongo: 'Paymongo',
+        dragonpay: 'Dragonpay',
+        xendit: 'Xendit',
+        ipay88: 'iPay88'
+      },
+      features: [
+        {
+          feature: 'Primary Target Market',
+          giapay: 'MSMEs, LGUs, Retail, Schools, Tourism',
+          paymongo: 'MSMEs and small businesses',
+          dragonpay: 'Businesses of all sizes, focus on unbanked consumers',
+          xendit: 'SMEs, e-commerce startups, large enterprises',
+          ipay88: 'SMEs to large corporations'
+        },
+        {
+          feature: 'Unique Selling Proposition',
+          giapay: 'Merchant-centric design, simple user journey, high configurability (fee allocation, gateway activation)',
+          paymongo: '"Stripe for the Philippines", advanced machine learning fraud detection',
+          dragonpay: 'Pioneer in alternative/offline payments, extensive Over-the-Counter (OTC) network',
+          xendit: 'Comprehensive SEA solution, 100+ payment methods, 24/7 support',
+          ipay88: 'Strong regional presence, comprehensive fraud prevention with 24/7 scanning'
+        },
+        {
+          feature: 'Payment Links (No Website)',
+          giapay: 'Yes, core feature',
+          paymongo: 'Yes, core feature',
+          dragonpay: 'Implied through various channels',
+          xendit: 'Yes, core feature',
+          ipay88: 'Yes, core feature'
+        },
+        {
+          feature: 'Key Security Features',
+          giapay: 'Google App Engine, SSL encryption, pass-through model (no sensitive data stored)',
+          paymongo: 'PCI-DSS Level 1, real-time machine learning fraud engine, 3D Secure',
+          dragonpay: 'SSL encryption, established fraud prevention protocols',
+          xendit: 'PCI-DSS compliant, AML checks, liveness detection, 24/7 monitoring',
+          ipay88: 'BSP licensed, 24/7 real-time fraud scanning, CVC/CVV2 verification'
+        },
+        {
+          feature: 'Setup / Annual Fees',
+          giapay: 'No setup/annual fees mentioned',
+          paymongo: 'No setup/annual fees',
+          dragonpay: 'Setup fee starts at ~₱36,000',
+          xendit: 'No setup/annual fees',
+          ipay88: 'Has one-time registration and annual fees (SME Plan)'
+        },
+        {
+          feature: 'Settlement Period',
+          giapay: 'T+1 to T+2',
+          paymongo: 'Instant settlement available via PayMongo Wallet (with a fee)',
+          dragonpay: 'Not explicitly stated',
+          xendit: 'Varies by method, some instant',
+          ipay88: 'Typically 5 business days'
+        },
+        {
+          feature: 'Customer Support',
+          giapay: 'Email, Chat, Dashboard. Clear SLA (P0-P3 priorities)',
+          paymongo: 'Help Center, localized content',
+          dragonpay: 'Phone, Email, Viber with specified business hours',
+          xendit: '24/7 support via Email, Live Chat, Viber',
+          ipay88: 'Email, Phone'
+        },
+      ],
+    };
+
+    const pricingData = {
+      labels: ['Credit/Debit Card (Local)', 'GCash', 'Online Banking', 'Over-the-Counter'],
+      datasets: [
+        {
+          label: 'GiyaPay',
+          data: [2.8, 2.8, 2.8, null], 
+          backgroundColor: 'rgba(139, 92, 246, 0.7)',
+          borderColor: 'rgba(139, 92, 246, 1)',
+          borderWidth: 1,
+          tooltips: {
+            'Credit/Debit Card (Local)': '2.80% + ₱12.50',
+            'GCash': '2.80% (Universal) + ₱12.50',
+            'Online Banking': '2.80% (Universal) + ₱12.50',
+          }
+        },
+        {
+          label: 'Paymongo',
+          data: [3.5, 2.9, 0.8, null],
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1,
+           tooltips: {
+            'Credit/Debit Card (Local)': '3.5% + ₱15',
+            'GCash': '2.9%',
+            'Online Banking': '0.8% or ₱15 min',
+          }
+        },
+        {
+          label: 'Dragonpay',
+          data: [null, null, null, null],
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor: 'rgba(239, 68, 68, 1)',
+          borderWidth: 1,
+          tooltips: {
+            'Credit/Debit Card (Local)': 'Varies by evaluation',
+            'GCash': 'Varies (Fixed to MDR)',
+            'Online Banking': '₱10-15 fixed fee',
+            'Over-the-Counter': '₱15-20 fixed fee',
+          }
+        },
+        {
+          label: 'Xendit',
+          data: [3.2, 2.3, 1.0, 1.5],
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+          borderColor: 'rgba(16, 185, 129, 1)',
+          borderWidth: 1,
+          tooltips: {
+            'Credit/Debit Card (Local)': '3.20% + ₱10',
+            'GCash': '2.30%',
+            'Online Banking': '1.0% or ₱15',
+            'Over-the-Counter': '₱15-25 fixed fee',
+          }
+        },
+        {
+          label: 'iPay88',
+          data: [2.7, 2.6, 2.6, null],
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: 'rgba(245, 158, 11, 1)',
+          borderWidth: 1,
+          tooltips: {
+            'Credit/Debit Card (Local)': '2.7% (SME Plan)',
+            'GCash': '2.6% or min RM0.60',
+            'Online Banking': '2.6% or min RM0.60',
+          }
+        }
+      ]
+    };
+     
+    const profilesData = [
+      {
+        name: 'GiyaPay',
+        logoColor: 'text-orange-500',
+        summary: 'A "pandemic-native" payment aggregator focused on simplifying digital payments for Philippine MSMEs. Its core strengths are ease of use, merchant-centric design, and high configurability.',
+        details: [
+          '**Pricing:** Fixed transaction fee (₱12.50) + MDR. Offers "Universal" (e.g., 2.80%) or "Individualized" (per-gateway) MDRs.',
+          '**Key Advantage:** Allows merchants to configure who absorbs fees (merchant or payor) and which gateways are active, offering superior operational flexibility.',
+          '**Security:** Built on Google App Engine with a pass-through data model, meaning it does not store sensitive payor financial data.'
+        ]
+      },
+      {
+        name: 'Paymongo',
+        logoColor: 'text-blue-600',
+        summary: 'A well-funded fintech often called the "Stripe for the Philippines." It targets MSMEs with a comprehensive suite of easy-to-integrate payment tools and strong fraud prevention.',
+        details: [
+          '**Pricing:** Per-transaction fees vary by method (e.g., Cards: 3.5% + ₱15, GCash: 2.9%). No setup fees.',
+          '**Key Advantage:** Advanced real-time fraud detection powered by machine learning and PCI-DSS Level 1 compliance.',
+          '**Security:** Emphasizes top-tier security with HTTPS/HSTS, 3D Secure, and detailed risk analysis.'
+        ]
+      },
+      {
+        name: 'Dragonpay',
+        logoColor: 'text-red-600',
+        summary: 'A veteran in the Philippine market, Dragonpay excels in alternative and offline payment channels, catering to the large segment of unbanked consumers.',
+        details: [
+          '**Pricing:** Often uses fixed fees for non-card transactions (e.g., Online Banking: ₱10-15). Requires a significant one-time setup fee.',
+          '**Key Advantage:** Unmatched network of over-the-counter (OTC) payment centers (banks, pawnshops, convenience stores).',
+          '**Security:** Established and trusted platform with a long history of secure transaction processing.'
+        ]
+      },
+       {
+        name: 'Xendit',
+        logoColor: 'text-green-600',
+        summary: 'A major Southeast Asian fintech providing a powerful, all-in-one payment infrastructure for businesses of all sizes, from startups to large enterprises.',
+        details: [
+          '**Pricing:** Transaction-based fees with no setup costs (e.g., Local Cards: 3.2% + ₱10, GCash: 2.3%).',
+          '**Key Advantage:** Offers over 100 payment methods, advanced automation/payout features, and 24/7 human customer support.',
+          '**Security:** PCI-DSS compliant with advanced identity verification tools, including AML checks and liveness detection.'
+        ]
+      },
+      {
+        name: 'iPay88',
+        logoColor: 'text-amber-500',
+        summary: 'A leading regional payment gateway with a strong presence across Southeast Asia, serving over 35,000 merchants with a focus on security and reliability.',
+        details: [
+          '**Pricing:** Plan-based, typically involving one-time registration and annual fees on top of transaction rates (e.g., SME Card rate: 2.7%).',
+          '**Key Advantage:** BSP licensed with a comprehensive fraud prevention system featuring 24/7 real-time scanning.',
+          '**Security:** Focuses on secure, reliable processing with established protocols and official regulatory oversight.'
+        ]
+      }
+    ];
+
+    // Check authentication status first
+    async function checkAuthentication() {
+        try {
+            const response = await fetch('/api/auth/me');
+            if (!response.ok) {
+                window.location.href = 'login.html';
+                return false;
             }
-        ];
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const competitorToggle = document.getElementById('competitor-toggle');
-            const tableHead = document.querySelector('#comparison-table thead tr');
-            const tableBody = document.querySelector('#comparison-table tbody');
-            const profilesContainer = document.getElementById('profiles-container');
-            let visibleCompetitors = ['giapay', 'paymongo', 'xendit'];
-
-            function renderTable() {
-                tableHead.innerHTML = '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4 sm:w-1/5">Feature</th>';
-                visibleCompetitors.forEach(key => {
-                    const th = document.createElement('th');
-                    th.className = 'px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider';
-                    th.textContent = comparisonData.headers[key];
-                    tableHead.appendChild(th);
-                });
-
-                tableBody.innerHTML = '';
-                comparisonData.features.forEach(featureRow => {
-                    const tr = document.createElement('tr');
-                    let rowHTML = `<td class="px-4 py-4 text-sm font-medium text-gray-800">${featureRow.feature}</td>`;
-                    visibleCompetitors.forEach(key => {
-                        rowHTML += `<td class="px-4 py-4 text-sm text-gray-600">${featureRow[key] || 'N/A'}</td>`;
-                    });
-                    tr.innerHTML = rowHTML;
-                    tableBody.appendChild(tr);
-                });
+            const data = await response.json();
+            if (!data.user) {
+                window.location.href = 'login.html';
+                return false;
             }
+            return true;
+        } catch (error) {
+            console.error('Auth check error:', error);
+            window.location.href = 'login.html';
+            return false;
+        }
+    }
 
-            function renderToggles() {
-                competitorToggle.innerHTML = '';
-                Object.keys(comparisonData.headers).forEach(key => {
-                    if (key === 'giapay') return;
-                    const isChecked = visibleCompetitors.includes(key);
-                    const button = document.createElement('label');
-                    button.className = `inline-flex items-center px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 ${isChecked ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`;
-                    button.innerHTML = `
+    document.addEventListener('DOMContentLoaded', async function () {
+      // Check authentication first
+      const isAuthenticated = await checkAuthentication();
+      if (!isAuthenticated) return;
+
+      const competitorToggle = document.getElementById('competitor-toggle');
+      const tableHead = document.querySelector('#comparison-table thead tr');
+      const tableBody = document.querySelector('#comparison-table tbody');
+      const profilesContainer = document.getElementById('profiles-container');
+      let visibleCompetitors = ['giapay', 'paymongo', 'xendit'];
+
+      const generateFeatureInsightsBtn = document.getElementById('generate-feature-insights-btn');
+      const featureInsightsOutput = document.getElementById('feature-insights-output');
+      const featureInsightsContent = document.getElementById('feature-insights-content');
+      const featureLoadingSpinner = document.getElementById('feature-loading-spinner');
+
+      const summarizePricingBtn = document.getElementById('summarize-pricing-btn');
+      const pricingSummaryOutput = document.getElementById('pricing-summary-output');
+      const pricingSummaryContent = document.getElementById('pricing-summary-content');
+      const pricingLoadingSpinner = document.getElementById('pricing-loading-spinner');
+
+      const customModal = document.getElementById('custom-modal');
+      const modalTitle = document.getElementById('modal-title');
+      const modalMessage = document.getElementById('modal-message');
+
+      function showModal(title, message) {
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        customModal.classList.remove('hidden');
+      }
+
+      function renderTable() {
+        tableHead.innerHTML = '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4 sm:w-1/5">Feature</th>';
+        visibleCompetitors.forEach(key => {
+          const th = document.createElement('th');
+          th.className = 'px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider';
+          th.textContent = comparisonData.headers[key];
+          tableHead.appendChild(th);
+        });
+
+        tableBody.innerHTML = '';
+        comparisonData.features.forEach(featureRow => {
+          const tr = document.createElement('tr');
+          let rowHTML = `<td class="px-4 py-4 text-sm font-medium text-gray-800">${featureRow.feature}</td>`;
+          visibleCompetitors.forEach(key => {
+            rowHTML += `<td class="px-4 py-4 text-sm text-gray-600">${featureRow[key] || 'N/A'}</td>`;
+          });
+          tr.innerHTML = rowHTML;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function renderToggles() {
+        competitorToggle.innerHTML = '';
+        Object.keys(comparisonData.headers).forEach(key => {
+          if (key === 'giapay') return;
+          const isChecked = visibleCompetitors.includes(key);
+          const button = document.createElement('label');
+          button.className = `inline-flex items-center px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors duration-200 ${isChecked ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`;
+          button.innerHTML = `
             <input type="checkbox" class="sr-only" value="${key}" ${isChecked ? 'checked' : ''}>
             <span>${comparisonData.headers[key]}</span>
           `;
-                    button.addEventListener('change', (e) => {
-                        if (e.target.checked) {
-                            if (visibleCompetitors.length < 5) {
-                                visibleCompetitors.push(key);
-                            } else {
-                                e.target.checked = false;
-                                alert('You can select a maximum of 4 competitors to compare.');
-                                return;
-                            }
-                        } else {
-                            visibleCompetitors = visibleCompetitors.filter(c => c !== key);
-                        }
-                        renderTable();
-                        renderToggles();
-                    });
-                    competitorToggle.appendChild(button);
-                });
+          button.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              if (visibleCompetitors.length < 5) {
+                visibleCompetitors.push(key);
+              } else {
+                e.target.checked = false; 
+                showModal('Selection Limit', 'You can select a maximum of 4 competitors to compare.');
+                return;
+              }
+            } else {
+              visibleCompetitors = visibleCompetitors.filter(c => c !== key);
             }
+            renderTable();
+            renderToggles(); 
+          });
+          competitorToggle.appendChild(button);
+        });
+      }
 
-            function renderProfiles() {
-                profilesContainer.innerHTML = '';
-                profilesData.forEach(profile => {
-                    const card = document.createElement('div');
-                    card.className = 'card p-6 rounded-lg';
-                    let detailsHTML = profile.details.map(detail => `<li class="flex items-start"><span class="flex-shrink-0 mr-2 mt-1 text-purple-500">◆</span><span>${detail}</span></li>`).join('');
-                    card.innerHTML = `
+      function renderProfiles() {
+        profilesContainer.innerHTML = '';
+        profilesData.forEach(profile => {
+          const card = document.createElement('div');
+          card.className = 'card p-6 rounded-lg';
+          let detailsHTML = profile.details.map(detail => `<li class="flex items-start"><span class="flex-shrink-0 mr-2 mt-1" style="color: #fa9f42;">◆</span><span>${detail}</span></li>`).join('');
+          card.innerHTML = `
             <h3 class="text-xl font-bold ${profile.logoColor} mb-2">${profile.name}</h3>
             <p class="text-gray-600 mb-4">${profile.summary}</p>
             <ul class="space-y-2 text-sm text-gray-700">
               ${detailsHTML}
             </ul>
           `;
-                    profilesContainer.appendChild(card);
-                });
-            }
+          profilesContainer.appendChild(card);
+        });
+      }
 
-            renderToggles();
-            renderTable();
-            renderProfiles();
+      renderToggles();
+      renderTable();
+      renderProfiles();
 
-            const ctx = document.getElementById('pricingChart').getContext('2d');
-            const pricingChart = new Chart(ctx, {
-                type: 'bar',
-                data: pricingData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Merchant Discount Rate (MDR) Comparison (%)',
-                            font: { size: 16 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    const tooltipText = context.dataset.tooltips[context.label];
-                                    if (tooltipText) {
-                                        return `${label}${tooltipText}`;
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += `${context.parsed.y}%`;
-                                    }
-                                    return label;
-                                }
-                            }
-                        },
-                        legend: {
-                            position: 'bottom',
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'MDR (%)'
-                            },
-                            ticks: {
-                                callback: function (value) {
-                                    return value + '%'
-                                }
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 0,
-                                minRotation: 0,
-                                callback: function (value, index, values) {
-                                    const label = this.getLabelForValue(value);
-                                    if (label.length > 15) {
-                                        return label.split(' ');
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
+      const ctx = document.getElementById('pricingChart').getContext('2d');
+      const pricingChart = new Chart(ctx, {
+        type: 'bar',
+        data: pricingData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Merchant Discount Rate (MDR) Comparison (%)',
+              font: { size: 16 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  const tooltipText = context.dataset.tooltips[context.label];
+                  if (tooltipText) {
+                    return `${label}${tooltipText}`;
+                  }
+                  if (context.parsed.y !== null) {
+                    label += `${context.parsed.y}%`;
+                  }
+                  return label;
                 }
-            });
+              }
+            },
+            legend: {
+              position: 'bottom',
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'MDR (%)'
+              },
+              ticks: {
+                callback: function(value) {
+                  return value + '%'
+                }
+              }
+            },
+             x: {
+              ticks: {
+                maxRotation: 0,
+                minRotation: 0,
+                callback: function(value, index, values) {
+                  const label = this.getLabelForValue(value);
+                  if (label.length > 15) {
+                    return label.split(' ');
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+       
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
 
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+      // LLM Integration Functions
+      async function generateLLMResponse(prompt, outputElement, spinnerElement, outputContainer) {
+        outputElement.innerHTML = '';
+        outputContainer.classList.add('hidden');
+        spinnerElement.classList.remove('hidden');
+
+        try {
+          let chatHistory = [];
+          chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+          const payload = { contents: chatHistory };
+          const apiKey = ""; 
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+           
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+
+          if (result.candidates && result.candidates.length > 0 &&
+            result.candidates[0].content && result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0) {
+            const text = result.candidates[0].content.parts[0].text;
+            outputElement.innerHTML = text.replace(/\n/g, '<br>'); // Preserve newlines
+            outputContainer.classList.remove('hidden');
+          } else {
+            outputElement.innerHTML = 'Could not generate insights. Please try again.';
+            outputContainer.classList.remove('hidden');
+            console.error('LLM response structure unexpected:', result);
+          }
+        } catch (error) {
+          outputElement.innerHTML = 'An error occurred while fetching insights. Please try again later.';
+          outputContainer.classList.remove('hidden');
+          console.error('Error calling Gemini API:', error);
+        } finally {
+          spinnerElement.classList.add('hidden');
+        }
+      }
+
+      generateFeatureInsightsBtn.addEventListener('click', () => {
+        let featurePrompt = "Analyze the following payment gateway features and highlight key differentiators, strengths, and weaknesses for each, especially comparing them to GiyaPay. Suggest which type of business (e.g., small e-commerce, large enterprise, cash-based) might benefit most from each. Data:\n\n";
+         
+        const currentTableData = [];
+        const headers = ['Feature'];
+        visibleCompetitors.forEach(key => headers.push(comparisonData.headers[key]));
+        currentTableData.push(headers.join(' | '));
+        currentTableData.push(headers.map(h => '---').join(' | '));
+
+        comparisonData.features.forEach(featureRow => {
+          const row = [featureRow.feature];
+          visibleCompetitors.forEach(key => row.push(featureRow[key] || 'N/A'));
+          currentTableData.push(row.join(' | '));
         });
 
-        // SET YOUR UNIVERSAL CREDENTIALS HERE
-        const USERNAME = "giyapay";        // change as needed
-        const PASSWORD = "secure123";     // change as needed
+        featurePrompt += currentTableData.join('\n');
+         
+        generateLLMResponse(featurePrompt, featureInsightsContent, featureLoadingSpinner, featureInsightsOutput);
+      });
 
-        document.getElementById('login-form').onsubmit = function (e) {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            if (u === USERNAME && p === PASSWORD) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('protected-content').style.display = 'block';
+      summarizePricingBtn.addEventListener('click', () => {
+        let pricingPrompt = "Summarize the following payment gateway pricing data. Identify the most cost-effective options for each payment method (Credit/Debit Card, GCash, Online Banking, Over-the-Counter). Point out any significant differences or areas where one gateway clearly stands out. Data:\n\n";
+         
+        const pricingTableData = [];
+        const pricingHeaders = ['Payment Method'];
+        pricingData.datasets.forEach(dataset => pricingHeaders.push(dataset.label));
+        pricingTableData.push(pricingHeaders.join(' | '));
+        pricingTableData.push(pricingHeaders.map(h => '---').join(' | '));
+
+        pricingData.labels.forEach((method, index) => {
+          const row = [method];
+          pricingData.datasets.forEach(dataset => {
+            const value = dataset.data[index];
+            if (value !== null) {
+              row.push(dataset.tooltips[method] || `${value}%`);
             } else {
-                document.getElementById('login-error').textContent = 'Incorrect username or password.';
+              row.push('N/A');
             }
-        };
-    </script>
-</body>
+          });
+          pricingTableData.push(row.join(' | '));
+        });
 
+        pricingPrompt += pricingTableData.join('\n');
+
+        generateLLMResponse(pricingPrompt, pricingSummaryContent, pricingLoadingSpinner, pricingSummaryOutput);
+      });
+    });
+  </script>
+</body>
 </html>
