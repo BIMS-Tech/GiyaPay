@@ -36,7 +36,6 @@ class HeaderManager {
             <a href="faq.html" class="nav-hover w-nav-link">FAQ</a>
             <a href="contact.html" class="nav-hover w-nav-link">Contact</a>
             <a href="https://calendly.com/salesbimstech/60min-1?back=1&amp;month=2021-10" target="_blank" class="button-6 w-button">Get A Demo</a>
-            ${!this.currentUser ? '<a href="login.html" class="nav-hover w-nav-link" style="background: #667eea; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; margin-left: 10px;">Admin Login</a>' : ''}
         `;
 
         // Add current page highlighting
