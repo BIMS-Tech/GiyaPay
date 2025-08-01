@@ -14,7 +14,7 @@ class HeaderManager {
 
     async checkAuthStatus() {
         try {
-            const response = await fetch('/api/auth/me');
+            const response = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.ME);
             if (response.ok) {
                 this.currentUser = await response.json();
             }
@@ -293,7 +293,7 @@ class HeaderManager {
 // Global logout function
 async function logoutUser() {
     try {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.LOGOUT, { method: 'POST' });
         window.location.href = 'login.html';
     } catch (error) {
         console.error('Logout error:', error);
