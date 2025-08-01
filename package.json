@@ -4,7 +4,13 @@
   "description": "Backend for managing blog posts for giyapay.webflow",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "frontend": "node frontend-server.js",
+    "api": "node api-server.js",
+    "dev": "node start-servers.js",
+    "dev:frontend": "node frontend-server.js",
+    "dev:api": "node api-server.js",
+    "both": "node start-servers.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +19,7 @@
     "bcrypt": "^5.1.0",
     "body-parser": "^1.19.0",
     "cheerio": "^1.0.0-rc.10",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^4.17.1",
     "express-rate-limit": "^6.7.0",

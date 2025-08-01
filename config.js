@@ -1,7 +1,12 @@
 module.exports = {
     // Server Configuration
-    PORT: process.env.APP_PORT || 3000,
+    PORT: process.env.APP_PORT || 3000,        // Frontend server port
+    API_PORT: process.env.API_PORT || 3001,    // Backend API server port
     NODE_ENV: process.env.NODE_ENV || 'development',
+    
+    // API Configuration
+    API_URL: process.env.API_URL || 'http://localhost:3001',
+    FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
     
     // Database Configuration
     DB_CONFIG: {

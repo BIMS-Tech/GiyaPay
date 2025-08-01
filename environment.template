@@ -1,8 +1,13 @@
 # Copy this file to .env and update with your actual values
 
 # Server Configuration
-APP_PORT=3000
+APP_PORT=3000  # Frontend server port
+API_PORT=3001  # Backend API server port  
 NODE_ENV=development
+
+# API Configuration
+API_URL=http://localhost:3001
+FRONTEND_URL=http://localhost:3000
 
 # Database Configuration
 DB_HOST=your_database_host
