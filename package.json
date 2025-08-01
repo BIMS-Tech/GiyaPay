@@ -4,13 +4,14 @@
   "description": "Backend for managing blog posts for giyapay.webflow",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "frontend": "node frontend-server.js",
-    "api": "node api-server.js",
+    "start": "node start-servers.js",
+    "frontend": "cd frontend && npm start",
+    "backend": "cd backend && npm start",
     "dev": "node start-servers.js",
-    "dev:frontend": "node frontend-server.js",
-    "dev:api": "node api-server.js",
-    "both": "node start-servers.js"
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "both": "node start-servers.js",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
   "keywords": [],
   "author": "",

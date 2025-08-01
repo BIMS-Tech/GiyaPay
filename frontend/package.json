@@ -1,0 +1,19 @@
+{
+  "name": "giyapay-frontend",
+  "version": "1.0.0",
+  "description": "Frontend static server for GiyaPay website",
+  "main": "frontend-server.js",
+  "scripts": {
+    "start": "node frontend-server.js",
+    "dev": "node frontend-server.js",
+    "serve": "node frontend-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["frontend", "static", "website", "giyapay"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "dotenv": "^17.2.0"
+  }
+} 
