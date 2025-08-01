@@ -409,7 +409,7 @@
         // Check authentication status first
         async function checkAuthentication() {
             try {
-                const response = await fetch('../api/auth/me');
+                const response = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.ME);
                 if (!response.ok) {
                     window.location.href = '../login.html';
                     return false;
