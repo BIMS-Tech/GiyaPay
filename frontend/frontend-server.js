@@ -1,48 +1,103 @@
-// Load environment variables
-require('dotenv').config();
+// Frontend server for Cloud Run (inside /frontend)
+// Zero-dependency static file server using Node core modules only
+// Serves files from this directory and listens on process.env.PORT
 
-const express = require('express');
+const http = require('http');
+const fs = require('fs');
 const path = require('path');
-const config = require('../backend/config');
+const url = require('url');
 
-const app = express();
-const FRONTEND_PORT = config.PORT || 3000; // Use APP_PORT for frontend
+const PORT = Number(process.env.PORT || process.env.APP_PORT || 3000);
+const FRONTEND_DIR = __dirname;
 
-// Serve static files from the frontend directory
-app.use(express.static(path.join(__dirname)));
+const MIME_TYPES = {
+  '.html': 'text/html; charset=UTF-8',
+  '.css': 'text/css; charset=UTF-8',
+  '.js': 'application/javascript; charset=UTF-8',
+  '.json': 'application/json; charset=UTF-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.txt': 'text/plain; charset=UTF-8'
+};
 
-// Handle client-side routing - serve index.html for non-API routes
-app.get('*', (req, res, next) => {
-    // Skip API routes - let them 404 naturally since this is frontend server
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ 
-            error: 'API endpoints are served on a different port',
-            api_server: process.env.API_URL || 'http://localhost:3001'
-        });
+function sendJSON(res, status, payload) {
+  const data = JSON.stringify(payload);
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=UTF-8', 'Content-Length': Buffer.byteLength(data) });
+  res.end(data);
+}
+
+function safeJoin(base, target) {
+  const resolvedPath = path.resolve(base, '.' + target);
+  if (!resolvedPath.startsWith(base)) return null; // prevent path traversal
+  return resolvedPath;
+}
+
+function serveFile(res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+  fs.stat(filePath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=UTF-8' });
+      res.end('Not Found');
+      return;
     }
-    
-    // For other routes, try to serve the file or fallback to index.html
-    const filePath = path.join(__dirname, req.path);
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            // If file doesn't exist, serve index.html (for SPA routing)
-            res.sendFile(path.join(__dirname, 'index.html'));
-        }
+
+    const stream = fs.createReadStream(filePath);
+    stream.on('open', () => {
+      res.writeHead(200, { 'Content-Type': contentType });
+      stream.pipe(res);
     });
+    stream.on('error', () => {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
+      res.end('Internal Server Error');
+    });
+  });
+}
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url);
+  const pathname = parsedUrl.pathname || '/';
+
+  // Health check
+  if (pathname === '/health') {
+    return sendJSON(res, 200, { status: 'healthy', service: 'GiyaPay Frontend', timestamp: new Date().toISOString() });
+  }
+
+  // API guard (this service only serves static frontend)
+  if (pathname.startsWith('/api/')) {
+    return sendJSON(res, 404, { error: 'API is hosted separately', hint: 'Use the backend service URL for /api' });
+  }
+
+  // Resolve requested path safely
+  let filePath = safeJoin(FRONTEND_DIR, pathname);
+  if (!filePath) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=UTF-8' });
+    return res.end('Bad Request');
+  }
+
+  fs.stat(filePath, (err, stats) => {
+    if (!err && stats.isDirectory()) {
+      const indexPath = path.join(filePath, 'index.html');
+      return serveFile(res, indexPath);
+    }
+
+    if (!err && stats.isFile()) {
+      return serveFile(res, filePath);
+    }
+
+    // Fallback to root index.html for unknown routes
+    const fallback = path.join(FRONTEND_DIR, 'index.html');
+    serveFile(res, fallback);
+  });
 });
 
-// Health check for frontend server
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
-        service: 'GiyaPay Frontend Server',
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Start frontend server
-app.listen(FRONTEND_PORT, () => {
-    console.log(`🎨 Frontend Server running on http://localhost:${FRONTEND_PORT}`);
-    console.log(`📄 Serving static files from: ${__dirname}`);
-    console.log(`🔗 API Server should be running on: ${process.env.API_URL || 'http://localhost:3001'}`);
+server.listen(PORT, () => {
+  console.log(`🎨 Frontend Server (no deps) listening on port ${PORT}`);
+  console.log(`📄 Serving static files from: ${FRONTEND_DIR}`);
 }); 
