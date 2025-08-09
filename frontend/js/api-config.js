@@ -3,7 +3,7 @@ const API_CONFIG = {
     // Base API URL - change this to point to your API server
     BASE_URL: window.location.hostname === 'localhost' 
         ? 'http://localhost:3001'  // Development
-        : 'https://api.giyapay.com', // Production (update with your actual API domain)
+        : 'https://giyapaywebbackend-278278033724.asia-east2.run.app', // Production (Cloud Run backend)
     
     // API Endpoints
     ENDPOINTS: {
