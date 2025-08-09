@@ -1,8 +1,6 @@
 // Frontend server (root-level) for Cloud Run
 // Serves files from ./frontend and listens on process.env.PORT
 
-require('dotenv').config();
-
 const express = require('express');
 const path = require('path');
 
