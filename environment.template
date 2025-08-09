@@ -1,13 +1,13 @@
 # Copy this file to .env and update with your actual values
 
 # Server Configuration
-APP_PORT=3000  # Frontend server port
-API_PORT=3001  # Backend API server port  
+APP_PORT=3000  # Frontend server port (local dev)
+API_PORT=3001  # Backend API server port (local dev)
 NODE_ENV=development
 
-# API Configuration
-API_URL=http://localhost:3001
-FRONTEND_URL=http://localhost:3000
+# CORS Configuration
+# Comma-separated list of allowed origins (in addition to http://localhost:3000)
+ALLOWED_ORIGINS=https://your-frontend-domain.com,https://another-frontend.com
 
 # Database Configuration
 DB_HOST=your_database_host

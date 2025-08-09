@@ -13,8 +13,12 @@ const Database = require('./database');
 const config = require('./config');
 
 const app = express();
-const API_PORT = config.API_PORT || 3001; // Use different port for API
+// Respect Cloud Run PORT; fallback to configured API_PORT or 3001
+const API_PORT = Number(process.env.PORT || config.API_PORT || 3001);
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+// Trust proxy (required for secure cookies behind Cloud Run/Proxies)
+app.set('trust proxy', 1);
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -22,9 +26,22 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 // Configure CORS to allow frontend to communicate with API
+const defaultAllowed = ['http://localhost:3000'];
+const envAllowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = [...new Set([...defaultAllowed, ...envAllowed])];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true // Allow cookies/sessions
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS origin not allowed: ' + origin), false);
+    },
+    credentials: true,
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
 }));
 
 // Configure multer for file uploads
@@ -62,14 +79,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Session configuration
+const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
 app.use(session({
     secret: config.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Set to true in production with HTTPS
+        secure: isProduction,           // true in production behind HTTPS
         httpOnly: true,
-        maxAge: 86400000 // 24 hours in milliseconds
+        sameSite: isProduction ? 'none' : 'lax', // required for cross-site cookies
+        maxAge: Number(process.env.SESSION_MAX_AGE || 86400000) // 24 hours
     }
 }));
 
@@ -82,8 +101,7 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Serve uploaded files only
-app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/uploads', express.static(UPLOADS_DIR)); // Serve uploaded files
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -352,6 +370,6 @@ app.get('/api/health', (req, res) => {
 
 // Start API server
 app.listen(API_PORT, () => {
-    console.log(`🚀 API Server running on http://localhost:${API_PORT}`);
+    console.log(`🚀 API Server running on port ${API_PORT}`);
     console.log(`📊 Health check: http://localhost:${API_PORT}/api/health`);
 }); 
