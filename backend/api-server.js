@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const cors = require('cors');
@@ -32,11 +33,8 @@ const allowedOrigins = [...new Set([...defaultAllowed, ...envAllowed])];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
+        if (allowedOrigins.includes(origin)) return callback(null, true);
         return callback(new Error('CORS origin not allowed: ' + origin), false);
     },
     credentials: true,
@@ -50,7 +48,6 @@ const storage = multer.diskStorage({
         cb(null, UPLOADS_DIR);
     },
     filename: function (req, file, cb) {
-        // Generate unique filename with timestamp
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, 'blog-' + uniqueSuffix + path.extname(file.originalname));
     }
@@ -58,16 +55,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
-    },
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: function (req, file, cb) {
-        // Accept images only
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Only image files are allowed!'), false);
     }
 });
 
@@ -78,38 +69,49 @@ const db = new Database();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Session configuration
+// Session configuration with MySQL store
 const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const sessionStore = new MySQLStore({
+    host: config.DB_CONFIG.host,
+    port: config.DB_CONFIG.port,
+    user: config.DB_CONFIG.user,
+    password: config.DB_CONFIG.password,
+    database: config.DB_CONFIG.database,
+    clearExpired: true,
+    checkExpirationInterval: 15 * 60 * 1000,
+    expiration: Number(process.env.SESSION_MAX_AGE || 86400000),
+    createDatabaseTable: true
+});
+
 app.use(session({
     secret: config.SESSION_SECRET,
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: isProduction,           // true in production behind HTTPS
+        secure: true,
         httpOnly: true,
-        sameSite: isProduction ? 'none' : 'lax', // required for cross-site cookies
-        maxAge: Number(process.env.SESSION_MAX_AGE || 86400000) // 24 hours
+        sameSite: isProduction ? 'none' : 'lax',
+        partitioned: isProduction ? true : undefined,
+        maxAge: Number(process.env.SESSION_MAX_AGE || 86400000)
     }
 }));
 
 // Rate limiting for authentication endpoints
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: 5,
     message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-app.use('/uploads', express.static(UPLOADS_DIR)); // Serve uploaded files
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
-    if (req.session && req.session.userId) {
-        return next();
-    } else {
-        return res.status(401).json({ message: 'Authentication required' });
-    }
+    if (req.session && req.session.userId) return next();
+    return res.status(401).json({ message: 'Authentication required' });
 };
 
 // API Routes only - no static file serving
