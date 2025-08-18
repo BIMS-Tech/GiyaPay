@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = Number(process.env.PORT || process.env.APP_PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.APP_PORT || 3002);
 const FRONTEND_DIR = __dirname;
 
 const MIME_TYPES = {
