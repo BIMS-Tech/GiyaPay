@@ -432,6 +432,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         const email = formData.get('email');
         const password = formData.get('password');
 
+        console.log('Attempting login for:', email);
+
         try {
           const response = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.LOGIN, {
             method: 'POST',
@@ -441,13 +443,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             body: JSON.stringify({ email, password })
           });
 
+          console.log('Login response status:', response.status);
+          console.log('Login response headers:', response.headers);
+
           const data = await response.json();
+          console.log('Login response data:', data);
 
           if (response.ok) {
             showSuccess('Login successful! Redirecting to dashboard...');
-            setTimeout(() => {
-              window.location.href = '/dashboard.html';
-            }, 1500);
+            
+            // Test authentication immediately after login
+            setTimeout(async () => {
+              try {
+                console.log('Testing authentication after login...');
+                const authResponse = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.ME);
+                console.log('Auth test response status:', authResponse.status);
+                
+                if (authResponse.ok) {
+                  console.log('Authentication confirmed, redirecting...');
+                  window.location.href = 'dashboard.html';
+                } else {
+                  console.error('Authentication failed after login');
+                  showError('Login succeeded but authentication failed. Please try again.');
+                }
+              } catch (error) {
+                console.error('Auth test error:', error);
+                window.location.href = 'dashboard.html';
+              }
+            }, 1000);
           } else {
             showError(data.message || 'Login failed. Please try again.');
           }

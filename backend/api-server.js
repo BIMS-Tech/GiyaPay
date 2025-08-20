@@ -27,14 +27,23 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 // Configure CORS to allow frontend to communicate with API
-const defaultAllowed = ['http://localhost:3000'];
+const defaultAllowed = ['http://localhost:3000', 'http://localhost:3002'];
 const envAllowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = [...new Set([...defaultAllowed, ...envAllowed])];
 
 app.use(cors({
     origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
+        
+        // Allow localhost development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            return callback(null, true);
+        }
+        
+        // Allow specific origins
         if (allowedOrigins.includes(origin)) return callback(null, true);
+        
         return callback(new Error('CORS origin not allowed: ' + origin), false);
     },
     credentials: true,
@@ -89,10 +98,9 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: true,
+        secure: isProduction, // Only use secure cookies in production
         httpOnly: true,
         sameSite: isProduction ? 'none' : 'lax',
-        partitioned: isProduction ? true : undefined,
         maxAge: Number(process.env.SESSION_MAX_AGE || 86400000)
     }
 }));
@@ -132,10 +140,24 @@ app.get('/api/db-test', async (req, res) => {
     }
 });
 
+// Test session endpoint
+app.get('/api/session-test', (req, res) => {
+    res.json({
+        sessionID: req.sessionID,
+        session: req.session,
+        cookies: req.headers.cookie,
+        userAgent: req.headers['user-agent'],
+        origin: req.headers.origin,
+        referer: req.headers.referer
+    });
+});
+
 // Authentication Routes
 app.post('/api/auth/login', authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        console.log('Login attempt for:', email);
 
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
@@ -144,16 +166,31 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         const user = await db.authenticateUser(email, password);
         
         if (user) {
+            console.log('User authenticated, setting session...');
             req.session.userId = user.id;
             req.session.userEmail = user.email;
-            res.json({ 
-                message: 'Login successful',
-                user: {
-                    id: user.id,
-                    email: user.email
+            
+            // Save session explicitly
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.status(500).json({ message: 'Session error' });
                 }
+                
+                console.log('Session saved successfully');
+                console.log('Session ID:', req.sessionID);
+                console.log('Session data:', req.session);
+                
+                res.json({ 
+                    message: 'Login successful',
+                    user: {
+                        id: user.id,
+                        email: user.email
+                    }
+                });
             });
         } else {
+            console.log('Authentication failed for:', email);
             res.status(401).json({ message: 'Invalid email or password' });
         }
     } catch (error) {
@@ -173,10 +210,17 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.get('/api/auth/me', async (req, res) => {
+    console.log('Auth check request received');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    console.log('Cookies:', req.headers.cookie);
+    
     if (req.session && req.session.userId) {
+        console.log('Session found, user ID:', req.session.userId);
         try {
             const user = await db.getUserById(req.session.userId);
             if (user) {
+                console.log('User found:', user.email);
                 res.json({ 
                     user: {
                         id: user.id,
@@ -186,6 +230,7 @@ app.get('/api/auth/me', async (req, res) => {
                     }
                 });
             } else {
+                console.log('User not found in database');
                 res.status(401).json({ message: 'User not found' });
             }
         } catch (error) {
@@ -193,6 +238,7 @@ app.get('/api/auth/me', async (req, res) => {
             res.status(500).json({ message: 'Internal server error' });
         }
     } else {
+        console.log('No session or no user ID in session');
         res.status(401).json({ message: 'Not authenticated' });
     }
 });

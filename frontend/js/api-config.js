@@ -42,7 +42,11 @@ const API_CONFIG = {
             ...options
         };
         
-        return fetch(this.getUrl(endpoint), defaultOptions);
+        const url = this.getUrl(endpoint);
+        console.log('API request to:', url);
+        console.log('API request options:', defaultOptions);
+        
+        return fetch(url, defaultOptions);
     }
 };
 
