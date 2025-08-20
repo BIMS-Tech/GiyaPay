@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test - GiyaPay Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .info { background: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Test Page</h1>
+    
+    <div class="test-section info">
+        <h3>Current URL Info</h3>
+        <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+        <p><strong>Hostname:</strong> <span id="hostname"></span></p>
+        <p><strong>Pathname:</strong> <span id="pathname"></span></p>
+    </div>
+    
+    <div class="test-section info">
+        <h3>API Configuration</h3>
+        <p><strong>API_CONFIG Available:</strong> <span id="api-config-available"></span></p>
+        <p><strong>Base URL:</strong> <span id="base-url"></span></p>
+        <p><strong>ME Endpoint:</strong> <span id="me-endpoint"></span></p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Authentication Test</h3>
+        <button onclick="testAuth()">Test Authentication</button>
+        <div id="auth-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Navigation Test</h3>
+        <a href="../blog.html">Test Blog Link</a><br>
+        <a href="../index.html">Test Home Link</a>
+    </div>
+
+    <script src="../js/api-config.js"></script>
+    <script>
+        // Display current URL info
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('pathname').textContent = window.location.pathname;
+        
+        // Display API config info
+        document.getElementById('api-config-available').textContent = !!window.API_CONFIG;
+        document.getElementById('base-url').textContent = window.API_CONFIG?.BASE_URL || 'Not available';
+        document.getElementById('me-endpoint').textContent = window.API_CONFIG?.ENDPOINTS?.ME || 'Not available';
+        
+        async function testAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            resultDiv.innerHTML = '<p>Testing authentication...</p>';
+            
+            try {
+                console.log('Testing authentication...');
+                console.log('API_CONFIG:', window.API_CONFIG);
+                
+                if (!window.API_CONFIG) {
+                    resultDiv.innerHTML = '<p class="error">❌ API_CONFIG not available</p>';
+                    return;
+                }
+                
+                const response = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.ME);
+                console.log('Auth response:', response);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Auth data:', data);
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Authentication successful!</p>
+                        <p><strong>User:</strong> ${data.user?.email || 'No email'}</p>
+                        <p><strong>User ID:</strong> ${data.user?.id || 'No ID'}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Authentication failed</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Status Text:</strong> ${response.statusText}</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Auth test error:', error);
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Authentication error</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

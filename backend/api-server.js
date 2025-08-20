@@ -27,7 +27,12 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 // Configure CORS to allow frontend to communicate with API
-const defaultAllowed = ['http://localhost:3000', 'http://localhost:3002'];
+const defaultAllowed = [
+    'http://localhost:3000', 
+    'http://localhost:3002',
+    'https://giyapay.com',
+    'https://www.giyapay.com'
+];
 const envAllowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = [...new Set([...defaultAllowed, ...envAllowed])];
 
@@ -41,9 +46,15 @@ app.use(cors({
             return callback(null, true);
         }
         
+        // Allow GiyaPay domains
+        if (origin.includes('giyapay.com')) {
+            return callback(null, true);
+        }
+        
         // Allow specific origins
         if (allowedOrigins.includes(origin)) return callback(null, true);
         
+        console.log('CORS blocked origin:', origin);
         return callback(new Error('CORS origin not allowed: ' + origin), false);
     },
     credentials: true,
@@ -74,9 +85,8 @@ const upload = multer({
 // Initialize database
 const db = new Database();
 
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware - Only apply body-parser to specific routes that need it
+// We'll apply body-parser middleware individually to routes that need JSON parsing
 
 // Session configuration with MySQL store
 const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
@@ -101,6 +111,7 @@ app.use(session({
         secure: isProduction, // Only use secure cookies in production
         httpOnly: true,
         sameSite: isProduction ? 'none' : 'lax',
+        domain: isProduction ? '.giyapay.com' : undefined, // Allow sharing across subdomains in production
         maxAge: Number(process.env.SESSION_MAX_AGE || 86400000)
     }
 }));
@@ -152,8 +163,20 @@ app.get('/api/session-test', (req, res) => {
     });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        service: 'GiyaPay Backend API',
+        timestamp: new Date().toISOString(),
+        domain: req.get('host'),
+        origin: req.headers.origin,
+        sessionConfigured: !!req.session
+    });
+});
+
 // Authentication Routes
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', authLimiter, bodyParser.json({ limit: '10mb' }), async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -199,7 +222,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', bodyParser.json({ limit: '10mb' }), (req, res) => {
     req.session.destroy((err) => {
         if (err) {
             console.error('Logout error:', err);
@@ -246,8 +269,11 @@ app.get('/api/auth/me', async (req, res) => {
 // API to get all blog posts (previews)
 app.get('/api/posts', async (req, res) => {
     try {
-        const status = req.query.status || 'published';
+        const status = req.query.status; // Don't default to 'published' - let the database function handle it
         const posts = await db.getAllBlogPosts(status);
+        console.log('API: Fetched posts with status filter:', status);
+        console.log('API: Post count:', posts.length);
+        console.log('API: Post statuses:', posts.map(p => ({ id: p.id, title: p.title, status: p.status })));
         res.json(posts);
     } catch (error) {
         console.error('Error fetching blog posts:', error);
@@ -287,6 +313,9 @@ app.get('/api/posts/:id', async (req, res) => {
 // API to create a new blog post (protected)
 app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req, res) => {
     try {
+        console.log('Creating blog post...');
+        console.log('File:', req.file ? req.file.filename : 'No file');
+        
         const { title, summary, content, category, date_published, status } = req.body;
 
         if (!title || !content || !date_published) {
@@ -318,7 +347,37 @@ app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req,
         });
     } catch (error) {
         console.error('Error creating blog post:', error);
-        res.status(500).json({ message: 'Error creating blog post' });
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Error creating blog post: ' + error.message });
+    }
+});
+
+// API to publish/unpublish a blog post (protected) - JSON only
+app.put('/api/posts/:id/status', requireAuth, bodyParser.json({ limit: '10mb' }), async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { status } = req.body;
+
+        if (!status || !['published', 'draft'].includes(status)) {
+            return res.status(400).json({ message: 'Status must be either "published" or "draft"' });
+        }
+
+        const existingPost = await db.getBlogPostById(postId);
+        if (!existingPost) {
+            return res.status(404).json({ message: 'Blog post not found' });
+        }
+
+        // Update only the status
+        await db.updateBlogPost(postId, { status });
+        
+        res.json({ 
+            message: `Post ${status} successfully`, 
+            post: { id: postId, status }
+        });
+    } catch (error) {
+        console.error('Error updating post status:', error);
+        res.status(500).json({ message: 'Error updating post status' });
     }
 });
 

@@ -181,14 +181,16 @@ class Database {
         }
     }
 
-    async getAllBlogPosts(status = 'published') {
+    async getAllBlogPosts(status = null) {
         try {
             let query, params;
             
-            if (status === 'all') {
+            if (!status || status === 'all') {
+                // Return all posts when no status is specified or status is 'all'
                 query = 'SELECT bp.*, u.email as author_email FROM blog_posts bp LEFT JOIN users u ON bp.author_id = u.id ORDER BY bp.created_at DESC';
                 params = [];
             } else {
+                // Filter by specific status
                 query = 'SELECT bp.*, u.email as author_email FROM blog_posts bp LEFT JOIN users u ON bp.author_id = u.id WHERE bp.status = ? ORDER BY bp.created_at DESC';
                 params = [status];
             }
@@ -218,9 +220,48 @@ class Database {
         try {
             const { title, summary, content, featured_image, category, date_published, status } = postData;
             
+            // Build dynamic query based on provided fields
+            const updates = [];
+            const values = [];
+            
+            if (title !== undefined) {
+                updates.push('title = ?');
+                values.push(title);
+            }
+            if (summary !== undefined) {
+                updates.push('summary = ?');
+                values.push(summary);
+            }
+            if (content !== undefined) {
+                updates.push('content = ?');
+                values.push(content);
+            }
+            if (featured_image !== undefined) {
+                updates.push('featured_image = ?');
+                values.push(featured_image);
+            }
+            if (category !== undefined) {
+                updates.push('category = ?');
+                values.push(category);
+            }
+            if (date_published !== undefined) {
+                updates.push('date_published = ?');
+                values.push(date_published);
+            }
+            if (status !== undefined) {
+                updates.push('status = ?');
+                values.push(status);
+            }
+            
+            // Always update the updated_at timestamp
+            updates.push('updated_at = NOW()');
+            
+            // Add the id for the WHERE clause
+            values.push(id);
+            
             const [result] = await this.pool.execute(
-                'UPDATE blog_posts SET title = ?, summary = ?, content = ?, featured_image = ?, category = ?, date_published = ?, status = ?, updated_at = NOW() WHERE id = ?',
-                [title, summary, content, featured_image, category, date_published, status, id]
+                `UPDATE blog_posts SET ${updates.join(', ')} WHERE id = ?`,
+                values
             );
             
             return result.affectedRows > 0;

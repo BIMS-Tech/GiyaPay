@@ -45,7 +45,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </script>
 </head>
 
-\1
+
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N9327F65"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -223,11 +223,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         // Handle featured image
                         let imageDiv = '';
                         if (post.featured_image) {
-                            // Check if it's a full URL or relative path
-                            let imageUrl = post.featured_image;
-                            if (!post.featured_image.startsWith('http') && !post.featured_image.startsWith('/')) {
-                                imageUrl = `uploads/${post.featured_image}`;
-                            }
+                            const imageUrl = API_CONFIG.getImageUrl(post.featured_image);
                             imageDiv = `<div class="blog-preview-related" style="background-image: url('${imageUrl}');"></div>`;
                         } else {
                             // Use a default background class if no image - matching existing Webflow pattern

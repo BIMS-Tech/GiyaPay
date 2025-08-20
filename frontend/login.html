@@ -199,7 +199,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </script>
 </head>
 
-\1
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N9327F65"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -254,6 +253,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       
       <div class="back-to-home">
         <a href="index.html" class="back-link">← Back to Homepage</a>
+        <br><br>
+        <button id="test-connection" class="login-button" style="background: #6c757d; margin-top: 10px;">
+          🔧 Test Backend Connection
+        </button>
       </div>
     </div>
 
@@ -509,10 +512,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     });
 
-    // Global logout function to match other pages
-    function logout() {
-      window.location.href = 'login.html';
-    }
+          // Test backend connection
+      document.getElementById('test-connection').addEventListener('click', async function() {
+        try {
+          console.log('Testing backend connection...');
+          const response = await API_CONFIG.fetch(API_CONFIG.ENDPOINTS.HEALTH);
+          const data = await response.json();
+          console.log('Backend health check response:', data);
+          alert('✅ Backend connection successful!\n\nDomain: ' + data.domain + '\nStatus: ' + data.status);
+        } catch (error) {
+          console.error('Backend connection test failed:', error);
+          alert('❌ Backend connection failed!\n\nError: ' + error.message);
+        }
+      });
+
+      // Global logout function to match other pages
+      function logout() {
+        window.location.href = 'login.html';
+      }
   </script>
 </body>
 </html> 

@@ -21,6 +21,84 @@
     <link href="images/favicon.png" rel="shortcut icon" type="image/x-icon">
     <link href="images/webclip.jpg" rel="apple-touch-icon">
     <style>
+        /* Allow custom HTML styling in blog content */
+        .rich-text-block {
+            overflow: visible;
+        }
+        
+        .rich-text-block h1, .rich-text-block h2, .rich-text-block h3, 
+        .rich-text-block h4, .rich-text-block h5, .rich-text-block h6 {
+            margin: 1.5em 0 0.5em 0;
+            color: #333;
+        }
+        
+        .rich-text-block p {
+            margin: 1em 0;
+            line-height: 1.6;
+        }
+        
+        .rich-text-block table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+        
+        .rich-text-block table, .rich-text-block th, .rich-text-block td {
+            border: 1px solid #ddd;
+        }
+        
+        .rich-text-block th, .rich-text-block td {
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .rich-text-block th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .rich-text-block ul, .rich-text-block ol {
+            margin: 1em 0;
+            padding-left: 2em;
+        }
+        
+        .rich-text-block li {
+            margin: 0.5em 0;
+        }
+        
+        .rich-text-block blockquote {
+            border-left: 4px solid #fa9f42;
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            background-color: #f8f9fa;
+            font-style: italic;
+        }
+        
+        .rich-text-block code {
+            background-color: #f1f3f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .rich-text-block pre {
+            background-color: #f1f3f4;
+            padding: 1em;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        
+        .rich-text-block hr {
+            border: none;
+            border-top: 2px solid #e1e5e9;
+            margin: 2em 0;
+        }
+        
+        /* Allow custom colors and styling */
+        .rich-text-block * {
+            max-width: 100%;
+        }
     </style>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -40,7 +118,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </script>
 </head>
 
-\1
+
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N9327F65"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -271,21 +349,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             });
             document.getElementById('post-date').textContent = formattedDate;
             
-            // Display content (convert line breaks to paragraphs if needed)
+            // Display content (always render as HTML)
             let content = post.content;
-            if (!content.includes('<p>') && !content.includes('<div>')) {
-                // Simple text content - convert to paragraphs
-                content = content.split('\n\n').map(p => p.trim()).filter(p => p).map(p => `<p>${p}</p>`).join('');
+            
+            // If content doesn't contain HTML tags, convert line breaks to paragraphs
+            if (!content.includes('<') || content.includes('<p>') || content.includes('<div>')) {
+                // Check if it's plain text without HTML
+                if (!content.includes('<p>') && !content.includes('<div>') && !content.includes('<h') && !content.includes('<table>') && !content.includes('<ul>') && !content.includes('<ol>')) {
+                    // Simple text content - convert to paragraphs
+                    content = content.split('\n\n').map(p => p.trim()).filter(p => p).map(p => `<p>${p}</p>`).join('');
+                }
             }
+            
             document.getElementById('post-content').innerHTML = content;
             
             // Display featured image
             const imageWrapper = document.getElementById('featured-image-wrapper');
             if (post.featured_image) {
-                let imageUrl = post.featured_image;
-                if (!post.featured_image.startsWith('http') && !post.featured_image.startsWith('/')) {
-                    imageUrl = `uploads/${post.featured_image}`;
-                }
+                const imageUrl = API_CONFIG.getImageUrl(post.featured_image);
                 imageWrapper.style.backgroundImage = `url('${imageUrl}')`;
                 imageWrapper.style.backgroundSize = 'cover';
                 imageWrapper.style.backgroundPosition = 'center';
@@ -327,10 +408,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 
                 let imageHtml = '';
                 if (post.featured_image) {
-                    let imageUrl = post.featured_image;
-                    if (!post.featured_image.startsWith('http') && !post.featured_image.startsWith('/')) {
-                        imageUrl = `uploads/${post.featured_image}`;
-                    }
+                    const imageUrl = API_CONFIG.getImageUrl(post.featured_image);
                     imageHtml = `<div class="div-block-20"><img src="${imageUrl}" loading="lazy" alt="${post.title}" class="image-124" style="width: 100%; height: 150px; object-fit: cover;"></div>`;
                 }
                 

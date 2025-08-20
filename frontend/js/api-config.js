@@ -1,9 +1,17 @@
 // API Configuration for Frontend
 const API_CONFIG = {
     // Base API URL - change this to point to your API server
-    BASE_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:3001'  // Development
-        : 'https://giyapaywebbackend-278278033724.asia-east2.run.app', // Production (Cloud Run backend)
+    BASE_URL: (() => {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3001'; // Development
+        } else if (hostname.includes('giyapay.com')) {
+            return 'https://backend.giyapay.com'; // Production (Custom domain)
+        } else {
+            // Fallback for other domains
+            return 'https://backend.giyapay.com';
+        }
+    })(),
     
     // API Endpoints
     ENDPOINTS: {
@@ -31,18 +39,31 @@ const API_CONFIG = {
         return this.BASE_URL + endpoint;
     },
     
+    // Helper function to get image URL
+    getImageUrl: function(imagePath) {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        if (imagePath.startsWith('/')) return this.BASE_URL + imagePath;
+        return this.BASE_URL + '/' + imagePath;
+    },
+    
     // Helper function for fetch with default options
     fetch: function(endpoint, options = {}) {
+        // Don't set default Content-Type for FormData (let browser set it automatically)
+        const isFormData = options.body instanceof FormData;
+        
         const defaultOptions = {
             credentials: 'include', // Include cookies for session management
             headers: {
-                'Content-Type': 'application/json',
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
                 ...options.headers
             },
             ...options
         };
         
         const url = this.getUrl(endpoint);
+        console.log('Current hostname:', window.location.hostname);
+        console.log('API base URL:', this.BASE_URL);
         console.log('API request to:', url);
         console.log('API request options:', defaultOptions);
         
