@@ -532,11 +532,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             const statusFilter = document.getElementById('status-filter').value;
             const categoryFilter = document.getElementById('category-filter').value;
 
-            console.log('Filtering posts...');
-            console.log('Status filter:', statusFilter);
-            console.log('All posts:', allPosts);
-            console.log('Post statuses:', allPosts.map(p => ({ id: p.id, title: p.title, status: p.status })));
-
             filteredPosts = allPosts.filter(post => {
                 const matchesSearch = !searchTerm || 
                     post.title.toLowerCase().includes(searchTerm) ||
@@ -546,12 +541,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 const matchesStatus = !statusFilter || post.status === statusFilter;
                 const matchesCategory = !categoryFilter || post.category === categoryFilter;
 
-                console.log(`Post ${post.id} (${post.title}): status=${post.status}, matchesStatus=${matchesStatus}`);
-
                 return matchesSearch && matchesStatus && matchesCategory;
             });
 
-            console.log('Filtered posts:', filteredPosts);
             displayPosts(filteredPosts);
             updatePostsCount(filteredPosts.length, allPosts.length);
         }

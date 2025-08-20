@@ -10,6 +10,10 @@ NODE_ENV=development
 # For production with custom domain setup:
 ALLOWED_ORIGINS=https://giyapay.com,https://www.giyapay.com
 
+# Backend URL Configuration
+# Production backend URL (Google Cloud Run)
+BACKEND_URL=https://giyapaywebbackend-278278033724.asia-east2.run.app
+
 # Database Configuration
 DB_HOST=your_database_host
 DB_USER=your_database_user
