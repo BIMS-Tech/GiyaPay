@@ -62,10 +62,12 @@ const API_CONFIG = {
         };
         
         const url = this.getUrl(endpoint);
+        console.log('=== API CONFIG DEBUG ===');
         console.log('Current hostname:', window.location.hostname);
         console.log('API base URL:', this.BASE_URL);
         console.log('API request to:', url);
         console.log('API request options:', defaultOptions);
+        console.log('========================');
         
         return fetch(url, defaultOptions);
     }
