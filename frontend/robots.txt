@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Block admin pages
+Disallow: /admin/
+Disallow: /login.html
+Disallow: /dashboard.html
+
+# Block infinite recursive URLs
+Disallow: /blog/blog/
+Disallow: /frequently-asked-questions/frequently-asked-questions/
+
+# Block any URL with more than 3 levels deep (except FAQ pages)
+Disallow: /*/*/*/
+
+# Allow FAQ pages
+Allow: /frequently-asked-questions/*.html
+
+# Sitemap location
+Sitemap: https://giyapay.com/sitemap.xml
+
+# Crawl delay (optional - reduces server load)
+Crawl-delay: 1

@@ -11,7 +11,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "both": "node start-servers.js",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "generate-sitemap": "node backend/generate-sitemap.js"
   },
   "keywords": [],
   "author": "",
