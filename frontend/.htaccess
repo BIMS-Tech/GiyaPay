@@ -7,11 +7,27 @@ RewriteRule ^admin/ - [F,L]
 # Block access to login and dashboard from public
 RewriteRule ^(login|dashboard)\.html$ - [F,L]
 
-# Prevent access to any URL with multiple /blog/ segments
-RewriteRule ^blog/(blog/)+ - [F,L]
+# Block any URL with multiple /blog/ segments (more aggressive)
+RewriteRule ^blog/(blog/)+.*$ - [F,L]
 
-# Prevent access to any URL with multiple /frequently-asked-questions/ segments
-RewriteRule ^frequently-asked-questions/(frequently-asked-questions/)+ - [F,L]
+# Block any URL with multiple /frequently-asked-questions/ segments
+RewriteRule ^frequently-asked-questions/(frequently-asked-questions/)+.*$ - [F,L]
+
+# Block any URL with multiple /faq/ segments
+RewriteRule ^faq/(faq/)+.*$ - [F,L]
+
+# Block any URL with multiple /contact/ segments
+RewriteRule ^contact/(contact/)+.*$ - [F,L]
+
+# Block any URL with multiple /privacy-policy/ segments
+RewriteRule ^privacy-policy/(privacy-policy/)+.*$ - [F,L]
+
+# Block any URL with multiple /index/ segments
+RewriteRule ^index/(index/)+.*$ - [F,L]
+
+# Block any URL with more than 2 levels deep (except FAQ pages)
+RewriteCond %{REQUEST_URI} !^/frequently-asked-questions/
+RewriteRule ^([^/]+/){2,}.*$ - [F,L]
 
 # Redirect /index.html to /
 RewriteRule ^index\.html$ / [R=301,L]
@@ -27,10 +43,6 @@ RewriteRule ^contact/index\.html$ /contact.html [R=301,L]
 
 # Redirect /privacy-policy/index.html to /privacy-policy.html
 RewriteRule ^privacy-policy/index\.html$ /privacy-policy.html [R=301,L]
-
-# Block access to any URL with more than 3 levels deep (except FAQ pages)
-RewriteCond %{REQUEST_URI} !^/frequently-asked-questions/
-RewriteRule ^([^/]+/){3,} - [F,L]
 
 # Security headers
 <IfModule mod_headers.c>

@@ -6,15 +6,27 @@ Disallow: /admin/
 Disallow: /login.html
 Disallow: /dashboard.html
 
-# Block infinite recursive URLs
+# Block infinite recursive URLs (more aggressive)
 Disallow: /blog/blog/
+Disallow: /blog/blog/blog/
 Disallow: /frequently-asked-questions/frequently-asked-questions/
+Disallow: /faq/faq/
+Disallow: /contact/contact/
+Disallow: /privacy-policy/privacy-policy/
+Disallow: /index/index/
 
-# Block any URL with more than 3 levels deep (except FAQ pages)
-Disallow: /*/*/*/
+# Block any URL with more than 2 levels deep (except FAQ pages)
+Disallow: /*/*/
 
 # Allow FAQ pages
 Allow: /frequently-asked-questions/*.html
+
+# Block specific problematic patterns
+Disallow: /*/blog/
+Disallow: /*/faq/
+Disallow: /*/contact/
+Disallow: /*/privacy-policy/
+Disallow: /*/index/
 
 # Sitemap location
 Sitemap: https://giyapay.com/sitemap.xml
