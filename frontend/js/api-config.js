@@ -39,12 +39,17 @@ const API_CONFIG = {
         return this.BASE_URL + endpoint;
     },
     
-    // Helper function to get image URL
-    getImageUrl: function(imagePath) {
-        if (!imagePath) return null;
-        if (imagePath.startsWith('http')) return imagePath;
-        if (imagePath.startsWith('/')) return this.BASE_URL + imagePath;
-        return this.BASE_URL + '/' + imagePath;
+    // Helper function to get image URL (now supports base64 data URLs)
+    getImageUrl: function(imageData) {
+        if (!imageData) return null;
+        
+        // If it's already a data URL (base64), return as is
+        if (imageData.startsWith('data:')) return imageData;
+        
+        // Legacy support for file paths
+        if (imageData.startsWith('http')) return imageData;
+        if (imageData.startsWith('/')) return this.BASE_URL + imageData;
+        return this.BASE_URL + '/' + imageData;
     },
     
     // Helper function for fetch with default options

@@ -52,7 +52,8 @@ class Database {
                     title VARCHAR(500) NOT NULL,
                     summary TEXT,
                     content LONGTEXT NOT NULL,
-                    featured_image VARCHAR(500),
+                    featured_image LONGTEXT,
+                    featured_image_filename VARCHAR(255),
                     category VARCHAR(100) DEFAULT 'General',
                     author_id INT NOT NULL,
                     date_published VARCHAR(100) NOT NULL,
@@ -67,8 +68,44 @@ class Database {
             const [blogResult] = await this.pool.execute(createBlogPostsTable);
             console.log('Blog posts table created or already exists');
             
+            // Run migrations to update existing table structure
+            await this.runMigrations();
+            
         } catch (error) {
             console.error('Error creating tables:', error.message);
+        }
+    }
+
+    async runMigrations() {
+        try {
+            // Check if featured_image_filename column exists
+            const [columns] = await this.pool.execute(
+                "SHOW COLUMNS FROM blog_posts LIKE 'featured_image_filename'"
+            );
+            
+            if (columns.length === 0) {
+                // Add the new column
+                await this.pool.execute(
+                    'ALTER TABLE blog_posts ADD COLUMN featured_image_filename VARCHAR(255) AFTER featured_image'
+                );
+                console.log('✅ Added featured_image_filename column to blog_posts table');
+            }
+            
+            // Update featured_image column type to LONGTEXT if it's not already
+            const [imageColumns] = await this.pool.execute(
+                "SHOW COLUMNS FROM blog_posts WHERE Field = 'featured_image'"
+            );
+            
+            if (imageColumns.length > 0 && !imageColumns[0].Type.includes('longtext')) {
+                await this.pool.execute(
+                    'ALTER TABLE blog_posts MODIFY COLUMN featured_image LONGTEXT'
+                );
+                console.log('✅ Updated featured_image column type to LONGTEXT');
+            }
+            
+            console.log('Database migrations completed successfully');
+        } catch (error) {
+            console.error('Error running migrations:', error.message);
         }
     }
 
@@ -167,11 +204,11 @@ class Database {
     // Blog Posts Methods
     async createBlogPost(postData) {
         try {
-            const { title, summary, content, featured_image, category, author_id, date_published, status } = postData;
+            const { title, summary, content, featured_image, featured_image_filename, category, author_id, date_published, status } = postData;
             
             const [result] = await this.pool.execute(
-                'INSERT INTO blog_posts (title, summary, content, featured_image, category, author_id, date_published, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-                [title, summary, content, featured_image, category || 'General', author_id, date_published, status || 'published']
+                'INSERT INTO blog_posts (title, summary, content, featured_image, featured_image_filename, category, author_id, date_published, status, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+                [title, summary, content, featured_image, featured_image_filename, category || 'General', author_id, date_published, status || 'published']
             );
             
             return { id: result.insertId, ...postData };
@@ -218,7 +255,7 @@ class Database {
 
     async updateBlogPost(id, postData) {
         try {
-            const { title, summary, content, featured_image, category, date_published, status } = postData;
+            const { title, summary, content, featured_image, featured_image_filename, category, date_published, status } = postData;
             
             // Build dynamic query based on provided fields
             const updates = [];
@@ -239,6 +276,10 @@ class Database {
             if (featured_image !== undefined) {
                 updates.push('featured_image = ?');
                 values.push(featured_image);
+            }
+            if (featured_image_filename !== undefined) {
+                updates.push('featured_image_filename = ?');
+                values.push(featured_image_filename);
             }
             if (category !== undefined) {
                 updates.push('category = ?');

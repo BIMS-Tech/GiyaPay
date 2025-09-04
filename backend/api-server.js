@@ -327,6 +327,54 @@ app.get('/api/posts/:id', async (req, res) => {
     }
 });
 
+// Helper function to compress and convert image to base64
+const compressAndConvertToBase64 = (buffer, mimetype, filename) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const sharp = require('sharp');
+            
+            // Compress image based on type
+            let pipeline = sharp(buffer);
+            
+            // Resize if too large (max 1200px width, maintain aspect ratio)
+            pipeline = pipeline.resize(1200, null, { 
+                withoutEnlargement: true,
+                fit: 'inside'
+            });
+            
+            // Convert to appropriate format with compression
+            if (mimetype.includes('png')) {
+                pipeline = pipeline.png({ quality: 80, compressionLevel: 8 });
+            } else {
+                pipeline = pipeline.jpeg({ quality: 80, progressive: true });
+            }
+            
+            pipeline.toBuffer((err, compressedBuffer) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                const base64 = compressedBuffer.toString('base64');
+                const dataUrl = `data:${mimetype};base64,${base64}`;
+                
+                console.log(`Image compressed: ${filename}`);
+                console.log(`Original size: ${buffer.length} bytes`);
+                console.log(`Compressed size: ${compressedBuffer.length} bytes`);
+                console.log(`Compression ratio: ${((1 - compressedBuffer.length / buffer.length) * 100).toFixed(1)}%`);
+                
+                resolve(dataUrl);
+            });
+        } catch (error) {
+            // Fallback: convert without compression if sharp fails
+            console.warn('Sharp compression failed, using base64 without compression:', error.message);
+            const base64 = buffer.toString('base64');
+            const dataUrl = `data:${mimetype};base64,${base64}`;
+            resolve(dataUrl);
+        }
+    });
+};
+
 // API to create a new blog post (protected)
 app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req, res) => {
     try {
@@ -339,10 +387,27 @@ app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req,
             return res.status(400).json({ message: 'Title, content, and date are required fields' });
         }
 
-        // Handle uploaded image
+        // Handle uploaded image - convert to base64
         let featured_image = null;
+        let featured_image_filename = null;
+        
         if (req.file) {
-            featured_image = `/uploads/${req.file.filename}`;
+            try {
+                featured_image = await compressAndConvertToBase64(
+                    req.file.buffer || fs.readFileSync(req.file.path),
+                    req.file.mimetype,
+                    req.file.filename
+                );
+                featured_image_filename = req.file.originalname;
+                
+                // Clean up uploaded file since we're storing in database
+                if (req.file.path && fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
+            } catch (imageError) {
+                console.error('Error processing image:', imageError);
+                return res.status(400).json({ message: 'Error processing uploaded image' });
+            }
         }
 
         const postData = {
@@ -350,6 +415,7 @@ app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req,
             summary,
             content,
             featured_image,
+            featured_image_filename,
             category: category || 'General',
             author_id: req.session.userId,
             date_published,
@@ -414,17 +480,28 @@ app.put('/api/posts/:id', requireAuth, upload.single('featured_image'), async (r
             return res.status(404).json({ message: 'Blog post not found' });
         }
 
-        // Handle uploaded image
+        // Handle uploaded image - convert to base64
         let featured_image = existingPost.featured_image; // Keep existing image by default
+        let featured_image_filename = existingPost.featured_image_filename;
+        
         if (req.file) {
-            featured_image = `/uploads/${req.file.filename}`;
-            
-            // Delete old image file if it exists
-            if (existingPost.featured_image) {
-                const oldImagePath = path.join(__dirname, existingPost.featured_image);
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
+            try {
+                featured_image = await compressAndConvertToBase64(
+                    req.file.buffer || fs.readFileSync(req.file.path),
+                    req.file.mimetype,
+                    req.file.filename
+                );
+                featured_image_filename = req.file.originalname;
+                
+                // Clean up uploaded file since we're storing in database
+                if (req.file.path && fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
                 }
+                
+                // Note: No need to delete old image file since we're storing in database now
+            } catch (imageError) {
+                console.error('Error processing image:', imageError);
+                return res.status(400).json({ message: 'Error processing uploaded image' });
             }
         }
 
@@ -433,6 +510,7 @@ app.put('/api/posts/:id', requireAuth, upload.single('featured_image'), async (r
             summary,
             content,
             featured_image,
+            featured_image_filename,
             category: category || 'General',
             date_published,
             status: status || 'published'
