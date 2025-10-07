@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const zlib = require('zlib');
 
 const PORT = Number(process.env.PORT || process.env.APP_PORT || 3002);
 const FRONTEND_DIR = __dirname;
@@ -49,10 +50,48 @@ function serveFile(res, filePath) {
       return;
     }
 
+    // Set appropriate cache headers based on file type
+    const cacheHeaders = {};
+    if (ext === '.css' || ext === '.js') {
+      cacheHeaders['Cache-Control'] = 'public, max-age=31536000, immutable'; // 1 year for versioned assets
+    } else if (ext === '.html') {
+      cacheHeaders['Cache-Control'] = 'public, max-age=3600'; // 1 hour for HTML
+    } else if (ext === '.png' || ext === '.jpg' || ext === '.jpeg' || ext === '.svg' || ext === '.ico') {
+      cacheHeaders['Cache-Control'] = 'public, max-age=31536000'; // 1 year for images
+    } else {
+      cacheHeaders['Cache-Control'] = 'public, max-age=86400'; // 1 day for other files
+    }
+
+    // Add ETag for better caching
+    const etag = `"${stats.mtime.getTime()}-${stats.size}"`;
+    cacheHeaders['ETag'] = etag;
+
+    // Check if client has cached version
+    const ifNoneMatch = res.req.headers['if-none-match'];
+    if (ifNoneMatch === etag) {
+      res.writeHead(304, cacheHeaders);
+      res.end();
+      return;
+    }
+
+    // Check if client accepts gzip compression
+    const acceptEncoding = res.req.headers['accept-encoding'] || '';
+    const shouldCompress = acceptEncoding.includes('gzip') && 
+                          (ext === '.html' || ext === '.css' || ext === '.js' || ext === '.json' || ext === '.xml' || ext === '.txt');
+
     const stream = fs.createReadStream(filePath);
     stream.on('open', () => {
-      res.writeHead(200, { 'Content-Type': contentType });
-      stream.pipe(res);
+      const headers = { 'Content-Type': contentType, ...cacheHeaders };
+      
+      if (shouldCompress) {
+        headers['Content-Encoding'] = 'gzip';
+        const gzip = zlib.createGzip();
+        res.writeHead(200, headers);
+        stream.pipe(gzip).pipe(res);
+      } else {
+        res.writeHead(200, headers);
+        stream.pipe(res);
+      }
     });
     stream.on('error', () => {
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
