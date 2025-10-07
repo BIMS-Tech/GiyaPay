@@ -294,6 +294,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     errorDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #e74c3c;">Error loading blog posts. Please try again later.</p>';
                     blogPostsContainer.appendChild(errorDiv);
                 });
+        });
         
         function displayBlogPosts(data) {
             const blogPostsContainer = document.querySelector('.w-tab-pane.w--tab-active');
