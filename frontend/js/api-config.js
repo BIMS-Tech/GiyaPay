@@ -22,6 +22,7 @@ const API_CONFIG = {
         
         // Blog Posts
         POSTS: '/api/posts',
+        POSTS_PREVIEW: '/api/posts/preview',
         POST_BY_ID: (id) => `/api/posts/${id}`,
         
         // Blog Stats

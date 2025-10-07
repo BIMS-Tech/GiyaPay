@@ -10,6 +10,7 @@ const MySQLStore = require('express-mysql-session')(session);
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const cors = require('cors');
+const compression = require('compression');
 const Database = require('./database');
 const config = require('./config');
 
@@ -20,6 +21,9 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 // Trust proxy (required for secure cookies behind Cloud Run/Proxies)
 app.set('trust proxy', 1);
+
+// Enable compression for all responses
+app.use(compression());
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -142,7 +146,12 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Serve static files with caching headers
+app.use('/uploads', express.static(UPLOADS_DIR, {
+    maxAge: '1d', // Cache for 1 day
+    etag: true,
+    lastModified: true
+}));
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -283,18 +292,138 @@ app.get('/api/auth/me', async (req, res) => {
     }
 });
 
-// API to get all blog posts (previews)
+// In-memory cache for blog posts
+const blogCache = {
+    data: null,
+    timestamp: null,
+    ttl: 5 * 60 * 1000, // 5 minutes cache
+    status: null
+};
+
+// Cache invalidation function
+const invalidateBlogCache = () => {
+    blogCache.data = null;
+    blogCache.timestamp = null;
+    blogCache.status = null;
+};
+
+// API to get all blog posts (previews) with caching and pagination
 app.get('/api/posts', async (req, res) => {
     try {
-        const status = req.query.status; // Don't default to 'published' - let the database function handle it
+        const status = req.query.status;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        
+        // Check cache first
+        const now = Date.now();
+        if (blogCache.data && 
+            blogCache.timestamp && 
+            blogCache.status === status && 
+            (now - blogCache.timestamp) < blogCache.ttl) {
+            
+            // Return cached data with pagination
+            const startIndex = offset;
+            const endIndex = offset + limit;
+            const paginatedPosts = blogCache.data.slice(startIndex, endIndex);
+            
+            // Set caching headers for cached responses
+            res.set({
+                'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+                'ETag': `"cached-${blogCache.timestamp}-${blogCache.data.length}"`,
+                'X-Cache': 'HIT'
+            });
+            
+            res.json({
+                posts: paginatedPosts,
+                pagination: {
+                    page,
+                    limit,
+                    total: blogCache.data.length,
+                    totalPages: Math.ceil(blogCache.data.length / limit),
+                    hasNext: endIndex < blogCache.data.length,
+                    hasPrev: page > 1
+                }
+            });
+            return;
+        }
+        
+        // Fetch from database
         const posts = await db.getAllBlogPosts(status);
+        
+        // Cache the results
+        blogCache.data = posts;
+        blogCache.timestamp = now;
+        blogCache.status = status;
+        
+        // Apply pagination
+        const startIndex = offset;
+        const endIndex = offset + limit;
+        const paginatedPosts = posts.slice(startIndex, endIndex);
+        
         console.log('API: Fetched posts with status filter:', status);
         console.log('API: Post count:', posts.length);
-        console.log('API: Post statuses:', posts.map(p => ({ id: p.id, title: p.title, status: p.status })));
-        res.json(posts);
+        console.log('API: Paginated count:', paginatedPosts.length);
+        
+        // Set caching headers for API responses
+        res.set({
+            'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+            'ETag': `"${Date.now()}-${posts.length}"`,
+            'X-Cache': 'MISS'
+        });
+        
+        res.json({
+            posts: paginatedPosts,
+            pagination: {
+                page,
+                limit,
+                total: posts.length,
+                totalPages: Math.ceil(posts.length / limit),
+                hasNext: endIndex < posts.length,
+                hasPrev: page > 1
+            }
+        });
     } catch (error) {
         console.error('Error fetching blog posts:', error);
         res.status(500).json({ message: 'Error reading blog posts' });
+    }
+});
+
+// Lightweight API for blog post previews (without full content and images)
+app.get('/api/posts/preview', async (req, res) => {
+    try {
+        const status = req.query.status;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        
+        // Get lightweight posts from database
+        const posts = await db.getBlogPostPreviews(status, limit, offset);
+        const total = await db.getBlogPostCount(status);
+        
+        console.log('API: Fetched post previews with status filter:', status);
+        console.log('API: Preview count:', posts.length);
+        
+        // Set caching headers for lightweight API responses
+        res.set({
+            'Cache-Control': 'public, max-age=600', // Cache for 10 minutes (longer for previews)
+            'ETag': `"preview-${Date.now()}-${posts.length}"`
+        });
+        
+        res.json({
+            posts: posts,
+            pagination: {
+                page,
+                limit,
+                total: total,
+                totalPages: Math.ceil(total / limit),
+                hasNext: offset + limit < total,
+                hasPrev: page > 1
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching blog post previews:', error);
+        res.status(500).json({ message: 'Error reading blog post previews' });
     }
 });
 
@@ -424,6 +553,9 @@ app.post('/api/posts', requireAuth, upload.single('featured_image'), async (req,
 
         const newPost = await db.createBlogPost(postData);
         
+        // Invalidate cache when new post is created
+        invalidateBlogCache();
+        
         res.json({ 
             message: 'Blog post created successfully', 
             post: newPost
@@ -453,6 +585,9 @@ app.put('/api/posts/:id/status', requireAuth, bodyParser.json({ limit: '10mb' })
 
         // Update only the status
         await db.updateBlogPost(postId, { status });
+        
+        // Invalidate cache when post status is updated
+        invalidateBlogCache();
         
         res.json({ 
             message: `Post ${status} successfully`, 
@@ -519,6 +654,8 @@ app.put('/api/posts/:id', requireAuth, upload.single('featured_image'), async (r
         const success = await db.updateBlogPost(postId, postData);
         
         if (success) {
+            // Invalidate cache when post is updated
+            invalidateBlogCache();
             res.json({ message: 'Blog post updated successfully' });
         } else {
             res.status(404).json({ message: 'Blog post not found' });
@@ -551,6 +688,8 @@ app.delete('/api/posts/:id', requireAuth, async (req, res) => {
         const success = await db.deleteBlogPost(postId);
         
         if (success) {
+            // Invalidate cache when post is deleted
+            invalidateBlogCache();
             res.json({ message: 'Blog post deleted successfully' });
         } else {
             res.status(404).json({ message: 'Blog post not found' });

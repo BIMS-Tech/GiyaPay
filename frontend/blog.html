@@ -196,17 +196,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             loadingDiv.id = 'blog-loading';
             blogPostsContainer.appendChild(loadingDiv);
             
-            API_CONFIG.fetch(`${API_CONFIG.ENDPOINTS.POSTS}?status=published`)
+            // Use the lightweight preview API for faster loading
+            API_CONFIG.fetch(`${API_CONFIG.ENDPOINTS.POSTS_PREVIEW}?status=published&limit=20`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Failed to fetch posts');
                     }
                     return response.json();
                 })
-                .then(posts => {
+                .then(data => {
                     // Remove loading indicator
                     const loading = document.getElementById('blog-loading');
                     if (loading) loading.remove();
+                    
+                    const posts = data.posts;
                     
                     if (posts.length === 0) {
                         const noPostsDiv = document.createElement('div');

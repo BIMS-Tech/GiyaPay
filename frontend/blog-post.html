@@ -388,10 +388,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 return;
             }
             
-            // Fetch the blog post
+            // Fetch the blog post and related posts in parallel
             Promise.all([
                 API_CONFIG.fetch(API_CONFIG.ENDPOINTS.POST_BY_ID(postId)),
-                API_CONFIG.fetch(API_CONFIG.ENDPOINTS.POSTS + '?status=published&limit=10') // Get more posts for better related articles selection
+                API_CONFIG.fetch(API_CONFIG.ENDPOINTS.POSTS_PREVIEW + '?status=published&limit=10') // Get lightweight previews for related articles
             ])
             .then(async ([postResponse, relatedResponse]) => {
                 if (!postResponse.ok) {
@@ -399,7 +399,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 }
                 
                 const post = await postResponse.json();
-                const allPosts = await relatedResponse.json();
+                const relatedData = await relatedResponse.json();
+                const allPosts = relatedData.posts;
                 
                 // Filter out current post and get related posts
                 let relatedPosts = allPosts.filter(p => p.id !== parseInt(postId));

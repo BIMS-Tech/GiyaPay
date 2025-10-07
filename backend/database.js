@@ -338,6 +338,57 @@ class Database {
         }
     }
 
+    async getBlogPostPreviews(status = null, limit = 10, offset = 0) {
+        try {
+            let query, params;
+            
+            if (!status || status === 'all') {
+                // Return lightweight previews when no status is specified or status is 'all'
+                query = `SELECT bp.id, bp.title, bp.summary, bp.category, bp.date_published, bp.status, bp.views, bp.created_at, u.email as author_email 
+                        FROM blog_posts bp 
+                        LEFT JOIN users u ON bp.author_id = u.id 
+                        ORDER BY bp.created_at DESC 
+                        LIMIT ? OFFSET ?`;
+                params = [limit, offset];
+            } else {
+                // Filter by specific status
+                query = `SELECT bp.id, bp.title, bp.summary, bp.category, bp.date_published, bp.status, bp.views, bp.created_at, u.email as author_email 
+                        FROM blog_posts bp 
+                        LEFT JOIN users u ON bp.author_id = u.id 
+                        WHERE bp.status = ? 
+                        ORDER BY bp.created_at DESC 
+                        LIMIT ? OFFSET ?`;
+                params = [status, limit, offset];
+            }
+            
+            const [rows] = await this.pool.execute(query, params);
+            return rows;
+        } catch (error) {
+            console.error('Error fetching blog post previews:', error.message);
+            throw error;
+        }
+    }
+
+    async getBlogPostCount(status = null) {
+        try {
+            let query, params;
+            
+            if (!status || status === 'all') {
+                query = 'SELECT COUNT(*) as count FROM blog_posts';
+                params = [];
+            } else {
+                query = 'SELECT COUNT(*) as count FROM blog_posts WHERE status = ?';
+                params = [status];
+            }
+            
+            const [rows] = await this.pool.execute(query, params);
+            return rows[0].count;
+        } catch (error) {
+            console.error('Error fetching blog post count:', error.message);
+            throw error;
+        }
+    }
+
     async getBlogStats() {
         try {
             const [totalRows] = await this.pool.execute(
