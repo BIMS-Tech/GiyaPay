@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Configuration Test - GiyaPay</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 GiyaPay API Configuration Test</h1>
+    
+    <div class="test-container">
+        <h2>API Configuration Status</h2>
+        <div id="config-status" class="test-result info">Loading...</div>
+        <button onclick="testAPIConfig()">Test API Config</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>API Endpoints Test</h2>
+        <div id="endpoint-tests" class="test-result info">Click "Test Endpoints" to run tests</div>
+        <button onclick="testEndpoints()">Test Endpoints</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>Debug Information</h2>
+        <div id="debug-info" class="test-result info">Click "Show Debug Info" to see details</div>
+        <button onclick="showDebugInfo()">Show Debug Info</button>
+    </div>
+
+    <!-- Load API Config -->
+    <script src="js/api-config.js?v=4"></script>
+    
+    <script>
+        function testAPIConfig() {
+            const statusDiv = document.getElementById('config-status');
+            
+            try {
+                if (typeof API_CONFIG === 'undefined') {
+                    statusDiv.className = 'test-result error';
+                    statusDiv.innerHTML = '❌ API_CONFIG is not defined. Check if api-config.js is loaded properly.';
+                    return;
+                }
+                
+                // Test basic properties
+                const tests = [
+                    { name: 'BASE_URL', value: API_CONFIG.BASE_URL, type: 'string' },
+                    { name: 'ENDPOINTS', value: API_CONFIG.ENDPOINTS, type: 'object' },
+                    { name: 'getUrl function', value: typeof API_CONFIG.getUrl, type: 'function' },
+                    { name: 'fetch function', value: typeof API_CONFIG.fetch, type: 'function' }
+                ];
+                
+                let results = '<h3>✅ API_CONFIG is loaded successfully!</h3>';
+                results += '<ul>';
+                
+                tests.forEach(test => {
+                    const isValid = typeof test.value === test.type;
+                    results += `<li>${isValid ? '✅' : '❌'} ${test.name}: ${typeof test.value} ${isValid ? '' : `(expected ${test.type})`}</li>`;
+                });
+                
+                results += '</ul>';
+                results += `<p><strong>Base URL:</strong> ${API_CONFIG.BASE_URL}</p>`;
+                results += `<p><strong>Current Hostname:</strong> ${window.location.hostname}</p>`;
+                
+                statusDiv.className = 'test-result success';
+                statusDiv.innerHTML = results;
+                
+            } catch (error) {
+                statusDiv.className = 'test-result error';
+                statusDiv.innerHTML = `❌ Error testing API_CONFIG: ${error.message}`;
+            }
+        }
+        
+        async function testEndpoints() {
+            const testsDiv = document.getElementById('endpoint-tests');
+            testsDiv.className = 'test-result info';
+            testsDiv.innerHTML = '🔄 Testing endpoints...';
+            
+            if (typeof API_CONFIG === 'undefined') {
+                testsDiv.className = 'test-result error';
+                testsDiv.innerHTML = '❌ API_CONFIG is not available';
+                return;
+            }
+            
+            const tests = [
+                {
+                    name: 'Health Check',
+                    endpoint: API_CONFIG.ENDPOINTS.HEALTH,
+                    expectedStatus: 200
+                },
+                {
+                    name: 'Blog Posts Preview',
+                    endpoint: API_CONFIG.ENDPOINTS.POSTS_PREVIEW + '?status=published&limit=5',
+                    expectedStatus: 200
+                },
+                {
+                    name: 'Auth Check (Should be 401)',
+                    endpoint: API_CONFIG.ENDPOINTS.ME,
+                    expectedStatus: 401
+                }
+            ];
+            
+            let results = '<h3>Endpoint Test Results:</h3>';
+            
+            for (const test of tests) {
+                try {
+                    console.log(`Testing: ${test.name} - ${test.endpoint}`);
+                    const response = await API_CONFIG.fetch(test.endpoint);
+                    const isValid = response.status === test.expectedStatus;
+                    
+                    results += `<div class="test-result ${isValid ? 'success' : 'error'}">`;
+                    results += `${isValid ? '✅' : '❌'} ${test.name}: Status ${response.status} (Expected: ${test.expectedStatus})`;
+                    
+                    if (response.status === 200) {
+                        try {
+                            const data = await response.json();
+                            if (test.name.includes('Preview')) {
+                                results += `<br>📄 Posts: ${data.posts ? data.posts.length : 0}`;
+                            } else if (test.name.includes('Health')) {
+                                results += `<br>📄 Service: ${data.service || 'N/A'}`;
+                            }
+                        } catch (e) {
+                            results += `<br>📄 Response: ${response.statusText}`;
+                        }
+                    }
+                    
+                    results += '</div>';
+                    
+                } catch (error) {
+                    results += `<div class="test-result error">❌ ${test.name}: Error - ${error.message}</div>`;
+                }
+            }
+            
+            testsDiv.innerHTML = results;
+        }
+        
+        function showDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            
+            if (typeof API_CONFIG === 'undefined') {
+                debugDiv.className = 'test-result error';
+                debugDiv.innerHTML = '❌ API_CONFIG is not available';
+                return;
+            }
+            
+            const debugInfo = {
+                hostname: window.location.hostname,
+                protocol: window.location.protocol,
+                baseURL: API_CONFIG.BASE_URL,
+                endpoints: API_CONFIG.ENDPOINTS,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            };
+            
+            debugDiv.className = 'test-result info';
+            debugDiv.innerHTML = '<h3>Debug Information:</h3><pre>' + JSON.stringify(debugInfo, null, 2) + '</pre>';
+        }
+        
+        // Auto-run config test on page load
+        window.addEventListener('load', function() {
+            setTimeout(testAPIConfig, 100);
+        });
+    </script>
+</body>
+</html>

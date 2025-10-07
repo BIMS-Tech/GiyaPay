@@ -37,6 +37,10 @@ const API_CONFIG = {
     
     // Helper function to get full URL
     getUrl: function(endpoint) {
+        // Handle function endpoints (like POST_BY_ID)
+        if (typeof endpoint === 'function') {
+            throw new Error('Endpoint function called without parameters. Use API_CONFIG.ENDPOINTS.POST_BY_ID(id) instead of passing the function directly.');
+        }
         return this.BASE_URL + endpoint;
     },
     
@@ -67,11 +71,15 @@ const API_CONFIG = {
             ...options
         };
         
-        const url = this.getUrl(endpoint);
+        // Debug endpoint type
         console.log('=== API CONFIG DEBUG ===');
+        console.log('Endpoint type:', typeof endpoint);
+        console.log('Endpoint value:', endpoint);
         console.log('Current hostname:', window.location.hostname);
         console.log('API base URL:', this.BASE_URL);
-        console.log('API request to:', url);
+        
+        const url = this.getUrl(endpoint);
+        console.log('Final URL:', url);
         console.log('API request options:', defaultOptions);
         console.log('========================');
         

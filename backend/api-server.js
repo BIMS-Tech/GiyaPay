@@ -131,7 +131,7 @@ app.use(session({
     cookie: { 
         secure: isProduction, // Only use secure cookies in production
         httpOnly: true,
-        sameSite: isProduction ? 'none' : 'lax',
+        sameSite: isProduction ? 'lax' : 'lax', // Changed from 'none' to 'lax' for better compatibility
         domain: isProduction ? '.giyapay.com' : undefined, // Allow sharing across subdomains in production
         maxAge: Number(process.env.SESSION_MAX_AGE || 86400000)
     }
