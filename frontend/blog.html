@@ -189,17 +189,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
     </div>
     <!-- Preload critical JavaScript -->
-    <link rel="preload" href="js/api-config.js?v=4" as="script">
+    <link rel="preload" href="js/api-config.js?v=5" as="script">
+    
+    <!-- Preload blog API data -->
+    <link rel="prefetch" href="http://localhost:3001/api/posts/preview?status=published&limit=20">
     
     <!-- Load JavaScript with proper async/defer -->
     <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=617d6e09a01032808ec0ea8d"
         type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
         crossorigin="anonymous" defer></script>
-    <script src="js/api-config.js?v=4" type="text/javascript"></script>
+    <script src="js/api-config.js?v=5" type="text/javascript"></script>
     <script src="js/webflow.js" type="text/javascript" defer></script>
     <script src="js/header-manager.js" type="text/javascript" defer></script>
-    <script src="debug-console.js?v=1" type="text/javascript" defer></script>
-    <script src="performance-monitor.js?v=1" type="text/javascript"></script>
+    <script src="debug-console.js?v=2" type="text/javascript" defer></script>
+    <script src="performance-monitor.js?v=2" type="text/javascript"></script>
+
+    <script>
+        // Register Service Worker for ultra-fast loading
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 
     <script>
         // Logout function
@@ -235,7 +253,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 return;
             }
             
+            // Check cache first for instant loading
+            const cacheKey = 'blog-posts-cache';
+            const cachedData = sessionStorage.getItem(cacheKey);
+            const cacheTime = sessionStorage.getItem(cacheKey + '-time');
+            const now = Date.now();
+            
+            // Use cached data if less than 5 minutes old
+            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                console.log('🚀 Loading blog posts from cache (instant)');
+                const data = JSON.parse(cachedData);
+                displayBlogPosts(data);
+                return;
+            }
+            
             // Use the lightweight preview API for faster loading
+            console.log('🌐 Loading blog posts from API');
             API_CONFIG.fetch(`${API_CONFIG.ENDPOINTS.POSTS_PREVIEW}?status=published&limit=20`)
                 .then(response => {
                     if (!response.ok) {
@@ -244,62 +277,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     return response.json();
                 })
                 .then(data => {
-                    // Remove loading indicator
-                    const loading = document.getElementById('blog-loading');
-                    if (loading) loading.remove();
+                    // Cache the data for instant future loads
+                    sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                    sessionStorage.setItem(cacheKey + '-time', now.toString());
                     
-                    const posts = data.posts;
-                    
-                    if (posts.length === 0) {
-                        const noPostsDiv = document.createElement('div');
-                        noPostsDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">No blog posts available yet.</p>';
-                        blogPostsContainer.appendChild(noPostsDiv);
-                        return;
-                    }
-
-                    posts.forEach((post, index) => {
-                        const articleDiv = document.createElement('div');
-                        articleDiv.setAttribute('data-w-id', `dynamic-article-${post.id}`);
-                        articleDiv.classList.add('article');
-
-                        // Format date properly
-                        const formattedDate = new Date(post.date_published).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-
-                        // Handle featured image with optimized lazy loading
-                        let imageDiv = '';
-                        if (post.featured_image) {
-                            const imageUrl = API_CONFIG.getImageUrl(post.featured_image);
-                            // Use optimized lazy loading with placeholder
-                            imageDiv = `<div class="blog-preview-related lazy-bg" data-bg="${imageUrl}" style="background-color: #f5f5f5; background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+PC9zdmc+');"></div>`;
-                        } else {
-                            // Use a default background class if no image - matching existing Webflow pattern
-                            const thumbClasses = ['thumb-1', 'thumb-2', 'thumb-3', 'thumb-4', 'thumb-5'];
-                            const thumbClass = thumbClasses[index % thumbClasses.length];
-                            imageDiv = `<div class="blog-preview-related ${thumbClass}"></div>`;
-                        }
-
-                        // Use exact structure from your HTML
-                        articleDiv.innerHTML = `
-                            <div class="article-text-wrapper">
-                                <div class="blog-date-2">${formattedDate}</div>
-                                <h4 class="heading-3 bigger">${post.title}</h4>
-                                <p class="paragraph-11">${post.summary || 'Click to read more about this topic.'}</p>
-                                <a href="blog-post.html?id=${post.id}" class="secondary-button in-blog w-inline-block">
-                                    <div>Learn more</div>
-                                    <img src="images/right-arrow-1.svg" loading="lazy" alt="" class="right-arrow">
-                                </a>
-                            </div>
-                            ${imageDiv}
-                        `;
-                        blogPostsContainer.appendChild(articleDiv);
-                    });
-                    
-                    // Initialize lazy loading for background images
-                    initLazyLoading();
+                    displayBlogPosts(data);
                 })
                 .catch(error => {
                     console.error('Error fetching blog posts:', error);
@@ -312,9 +294,68 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     errorDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #e74c3c;">Error loading blog posts. Please try again later.</p>';
                     blogPostsContainer.appendChild(errorDiv);
                 });
-        });
         
-        // Lazy loading functionality for background images
+        function displayBlogPosts(data) {
+            const blogPostsContainer = document.querySelector('.w-tab-pane.w--tab-active');
+            
+            // Remove loading indicator
+            const loading = document.getElementById('blog-loading');
+            if (loading) loading.remove();
+            
+            const posts = data.posts;
+            
+            if (posts.length === 0) {
+                const noPostsDiv = document.createElement('div');
+                noPostsDiv.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">No blog posts available yet.</p>';
+                blogPostsContainer.appendChild(noPostsDiv);
+                return;
+            }
+
+            posts.forEach((post, index) => {
+                const articleDiv = document.createElement('div');
+                articleDiv.setAttribute('data-w-id', `dynamic-article-${post.id}`);
+                articleDiv.classList.add('article');
+
+                // Format date properly
+                const formattedDate = new Date(post.date_published).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Handle featured image with optimized lazy loading
+                let imageDiv = '';
+                if (post.featured_image) {
+                    const imageUrl = API_CONFIG.getImageUrl(post.featured_image);
+                    // Use optimized lazy loading with placeholder
+                    imageDiv = `<div class="blog-preview-related lazy-bg" data-bg="${imageUrl}" style="background-color: #f5f5f5; background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+PC9zdmc+');"></div>`;
+                } else {
+                    // Use a default background class if no image - matching existing Webflow pattern
+                    const thumbClasses = ['thumb-1', 'thumb-2', 'thumb-3', 'thumb-4', 'thumb-5'];
+                    const thumbClass = thumbClasses[index % thumbClasses.length];
+                    imageDiv = `<div class="blog-preview-related ${thumbClass}"></div>`;
+                }
+
+                // Use exact structure from your HTML
+                articleDiv.innerHTML = `
+                    <div class="article-text-wrapper">
+                        <div class="blog-date-2">${formattedDate}</div>
+                        <h4 class="heading-3 bigger">${post.title}</h4>
+                        <p class="paragraph-11">${post.summary || 'Click to read more about this topic.'}</p>
+                        <a href="blog-post.html?id=${post.id}" class="secondary-button in-blog w-inline-block">
+                            <div>Learn more</div>
+                            <img src="images/right-arrow-1.svg" loading="lazy" alt="" class="right-arrow">
+                        </a>
+                    </div>
+                    ${imageDiv}
+                `;
+                blogPostsContainer.appendChild(articleDiv);
+            });
+            
+            // Initialize lazy loading for background images
+            initLazyLoading();
+        }
+        
         function initLazyLoading() {
             const lazyElements = document.querySelectorAll('.lazy-bg');
             

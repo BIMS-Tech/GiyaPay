@@ -138,17 +138,17 @@
             console.warn('Could not store performance metrics:', e);
         }
         
-        // Send to analytics endpoint (if available)
-        if (config.endpoint && typeof API_CONFIG !== 'undefined') {
-            API_CONFIG.fetch(config.endpoint, {
-                method: 'POST',
-                body: JSON.stringify(metric)
-            }).catch(err => {
-                if (config.debug) {
-                    console.warn('Could not send performance metric:', err);
-                }
-            });
-        }
+        // Send to analytics endpoint (if available) - disabled for now
+        // if (config.endpoint && typeof API_CONFIG !== 'undefined') {
+        //     API_CONFIG.fetch(config.endpoint, {
+        //         method: 'POST',
+        //         body: JSON.stringify(metric)
+        //     }).catch(err => {
+        //         if (config.debug) {
+        //             console.warn('Could not send performance metric:', err);
+        //         }
+        //     });
+        // }
     }
     
     // Initialize performance monitoring
